@@ -35,7 +35,11 @@ func main() {
 	fmt.Println("3 = Thinkertoy")
 
 	reader := bufio.NewReader(os.Stdin)
-	input, _ := reader.ReadString('\n')
+	input, err := reader.ReadString('\n')
+	if err != nil {
+		fmt.Println("Error reading input:", err)
+		os.Exit(1)
+	}
 	input = strings.TrimSpace(input)
 
 	choice, err := strconv.Atoi(input)
@@ -44,15 +48,8 @@ func main() {
 		os.Exit(1)
 	}
 
-	var filename string
-	switch choice {
-	case 1:
-		filename = "banners/standard.txt"
-	case 2:
-		filename = "banners/shadow.txt"
-	case 3:
-		filename = "banners/thinkertoy.txt"
-	}
+	banners := []string{"banners/standard.txt", "banners/shadow.txt", "banners/thinkertoy.txt"}
+	filename := banners[choice-1]
 
 	// Split on the literal two-character sequence "\n" (backslash + n),
 	// which is how multi-line input is passed from the command line.

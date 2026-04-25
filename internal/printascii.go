@@ -22,11 +22,11 @@ func PrintAscii(lines []string, filename string) {
 	// are handled correctly alongside Unix-style files.
 	bannerLines := strings.Split(strings.ReplaceAll(string(data), "\r\n", "\n"), "\n")
 
-	for i := 0; i < len(lines); i++ {
+	for i, line := range lines {
 		// An empty string means the input contained a \n at this position.
 		// We print one blank line as a separator, but skip the very first
 		// element to avoid a leading blank line when the input itself is empty.
-		if lines[i] == "" {
+		if line == "" {
 			if i > 0 {
 				fmt.Println()
 			}
@@ -37,10 +37,11 @@ func PrintAscii(lines []string, filename string) {
 		// Each character c occupies rows [(c-32)*9+1] to [(c-32)*9+8]
 		// in the banner file (ASCII printable range starts at 32 = space).
 		for row := 1; row <= 8; row++ {
-			for _, r := range lines[i] {
-				fmt.Print(bannerLines[(int(r)-32)*9+row])
+			var sb strings.Builder
+			for _, r := range line {
+				sb.WriteString(bannerLines[(int(r)-32)*9+row])
 			}
-			fmt.Println()
+			fmt.Println(sb.String())
 		}
 	}
 }
