@@ -26,14 +26,14 @@ func captureOutput(f func()) string {
 	return buf.String()
 }
 
-// Ελέγχει ότι μια κενή γραμμή τυπώνει ακριβώς ένα newline
+// Ελέγχει ότι κενή είσοδος δεν τυπώνει τίποτα
 func TestEmptyLine(t *testing.T) {
 	output := captureOutput(func() {
 		internal.PrintAscii([]string{""}, "../banners/standard.txt")
 	})
 
-	if output != "\n" {
-		t.Errorf("expected single newline, got %q", output)
+	if output != "" {
+		t.Errorf("expected empty output, got %q", output)
 	}
 }
 
