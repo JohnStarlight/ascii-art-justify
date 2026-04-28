@@ -41,7 +41,7 @@ func PrintAscii(lines []string, filename string) error {
 				index := (int(r)-32)*9 + row
 
 				// Safety check to avoid out-of-bounds access
-				if index < 0 || index >= len(bannerLines) {
+				if /* index < 0 || */ index >= len(bannerLines) {
 					return fmt.Errorf("character %q is out of supported range in banner", r)
 				}
 
