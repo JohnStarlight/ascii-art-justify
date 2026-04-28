@@ -11,11 +11,10 @@ import (
 // separated by a blank line (9 lines per character total).
 // Empty lines in the input produce a single blank line in the output,
 // except for the first element which is skipped if empty.
-func PrintAscii(lines []string, filename string) {
+func PrintAscii(lines []string, filename string) error {
 	data, err := os.ReadFile(filename)
 	if err != nil {
-		fmt.Println("Could not open file:", err)
-		os.Exit(1)
+		return fmt.Errorf("could not open banner file: %w", err)
 	}
 
 	// Normalize line endings to \n so banner files with \r\n (Windows)
@@ -39,9 +38,18 @@ func PrintAscii(lines []string, filename string) {
 		for row := 1; row <= 8; row++ {
 			var sb strings.Builder
 			for _, r := range line {
-				sb.WriteString(bannerLines[(int(r)-32)*9+row])
+				index := (int(r)-32)*9 + row
+
+				// Safety check to avoid out-of-bounds access
+				if index < 0 || index >= len(bannerLines) {
+					return fmt.Errorf("character %q is out of supported range in banner", r)
+				}
+
+				sb.WriteString(bannerLines[index])
 			}
 			fmt.Println(sb.String())
 		}
 	}
+
+	return nil
 }

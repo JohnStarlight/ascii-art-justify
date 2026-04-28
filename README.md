@@ -50,6 +50,12 @@ After selecting style, the program prints the ASCII-art output for your text.
 - You must pass exactly one argument
 - Only printable ASCII characters are accepted (`32` to `126`)
 - Non-ASCII characters (for example `é` or emoji) are rejected
+- The sequence `\n` (backslash + n) is used to create new lines in the output
+
+Example:
+
+```bash
+go run ./cmd "Hello\nThere"
 
 ## Run Tests
 

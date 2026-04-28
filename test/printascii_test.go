@@ -29,7 +29,10 @@ func captureOutput(f func()) string {
 // Ελέγχει ότι κενή είσοδος δεν τυπώνει τίποτα
 func TestEmptyLine(t *testing.T) {
 	output := captureOutput(func() {
-		internal.PrintAscii([]string{""}, "../banners/standard.txt")
+		err := internal.PrintAscii([]string{""}, "../banners/standard.txt")
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
 	})
 
 	if output != "" {
@@ -40,7 +43,10 @@ func TestEmptyLine(t *testing.T) {
 // Ελέγχει ότι η έξοδος για ένα string έχει ακριβώς 8 γραμμές ASCII art
 func TestSingleWord(t *testing.T) {
 	output := captureOutput(func() {
-		internal.PrintAscii([]string{"Hi"}, "../banners/standard.txt")
+		err := internal.PrintAscii([]string{"Hi"}, "../banners/standard.txt")
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
 	})
 
 	lines := strings.Split(strings.TrimRight(output, "\n"), "\n")
@@ -52,7 +58,10 @@ func TestSingleWord(t *testing.T) {
 // Ελέγχει ότι το \n χωρίζει σωστά σε δύο blocks ASCII art με μία κενή γραμμή
 func TestNewlineSeparator(t *testing.T) {
 	output := captureOutput(func() {
-		internal.PrintAscii([]string{"Hi", "", "There"}, "../banners/standard.txt")
+		err := internal.PrintAscii([]string{"Hi", "", "There"}, "../banners/standard.txt")
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
 	})
 
 	// "Hi" = 8 γραμμές, "" = 1 κενή γραμμή, "There" = 8 γραμμές → σύνολο 17
@@ -65,7 +74,10 @@ func TestNewlineSeparator(t *testing.T) {
 // Ελέγχει ότι το A έχει το σωστό ASCII art (πέμπτη γραμμή του A στο standard έχει _)
 func TestSpecificCharacter(t *testing.T) {
 	output := captureOutput(func() {
-		internal.PrintAscii([]string{"A"}, "../banners/standard.txt")
+		err := internal.PrintAscii([]string{"A"}, "../banners/standard.txt")
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
 	})
 
 	lines := strings.Split(output, "\n")

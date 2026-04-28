@@ -12,10 +12,9 @@ import (
 
 func main() {
 	if len(os.Args) != 2 {
-		fmt.Println("The correct usage of this program is:")
-		fmt.Println("  1. Navigate to the project root directory")
-		fmt.Println("  2. Run: go run ./cmd \"your-text-here\"")
-		return
+		fmt.Println("Error: invalid usage")
+		fmt.Println("Usage: go run ./cmd \"your-text-here\"")
+		os.Exit(1)
 	}
 
 	text := os.Args[1]
@@ -24,7 +23,7 @@ func main() {
 	// Reject anything outside that range (e.g. accented letters, emoji).
 	for _, r := range text {
 		if r < 32 || r > 126 {
-			fmt.Printf("Invalid character detected: %q (only printable ASCII is supported)\n", r)
+			fmt.Printf("Error: invalid character %q (only printable ASCII is supported)\n", r)
 			os.Exit(1)
 		}
 	}
@@ -37,14 +36,14 @@ func main() {
 	reader := bufio.NewReader(os.Stdin)
 	input, err := reader.ReadString('\n')
 	if err != nil {
-		fmt.Println("Error reading input:", err)
+		fmt.Printf("Error: failed to read input: %v\n", err)
 		os.Exit(1)
 	}
 	input = strings.TrimSpace(input)
 
 	choice, err := strconv.Atoi(input)
 	if err != nil || choice < 1 || choice > 3 {
-		fmt.Println("Invalid choice. Please enter \"1\" for Standard, \"2\" for Shadow or \"3\" for Thinkertoy.")
+		fmt.Println("Error: invalid choice (must be 1, 2 or 3)")
 		os.Exit(1)
 	}
 
@@ -55,5 +54,10 @@ func main() {
 	// which is how multi-line input is passed from the command line.
 	// e.g. "Hello\nThere" becomes ["Hello", "There"].
 	lines := strings.Split(text, "\\n")
-	internal.PrintAscii(lines, filename)
+
+	err = internal.PrintAscii(lines, filename)
+	if err != nil {
+		fmt.Printf("Error: %v\n", err)
+		os.Exit(1)
+	}
 }

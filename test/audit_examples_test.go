@@ -24,7 +24,10 @@ func expectedRenderedLines(lines []string) int {
 func renderStandard(input string) string {
 	lines := strings.Split(input, "\\n")
 	return captureOutput(func() {
-		internal.PrintAscii(lines, "../banners/standard.txt")
+		err := internal.PrintAscii(lines, "../banners/standard.txt")
+		if err != nil {
+			panic(err)
+		}
 	})
 }
 
