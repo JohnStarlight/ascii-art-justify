@@ -17,6 +17,10 @@ func PrintAscii(lines []string, filename string) error {
 		return fmt.Errorf("could not open banner file: %w", err)
 	}
 
+	if strings.Count(string(data), "\n") != 855 {
+		return fmt.Errorf("banner file is corrupt or invalid (expected 856 lines, got %d)", strings.Count(string(data), "\n")+1)
+	}
+
 	// Normalize line endings to \n so banner files with \r\n (Windows)
 	// are handled correctly alongside Unix-style files.
 	bannerLines := strings.Split(strings.ReplaceAll(string(data), "\r\n", "\n"), "\n")
