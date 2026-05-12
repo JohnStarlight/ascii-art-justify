@@ -2,21 +2,37 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"strings"
-	"io"
 
 	"ascii-art/internal"
 )
 
 func main() {
-	
-	// Split on the literal two-character sequence "\n" (backslash + n),
-	// which is how multi-line input is passed from the command line.
-	// e.g. "Hello\nThere" becomes ["Hello", "There"].
-	lines := strings.Split(text, "\\n")
+	config, err := internal.ParseArgs(os.Args)
+	if err != nil {
+		fmt.Printf("Error: %v\n", err)
+		os.Exit(1)
+	}
 
-	if err := internal.PrintAscii(writer, lines, value); err != nil {
+	var writer io.Writer
+	writer = os.Stdout
+
+	if config.OutputFile != "" {
+		file, err := internal.PrepareOutputFile(config.OutputFile)
+		if err != nil {
+			fmt.Printf("Error: %v\n", err)
+			os.Exit(1)
+		}
+
+		writer = file
+		defer file.Close()
+	}
+
+	lines := strings.Split(config.Text, "\\n")
+
+	if err := internal.PrintAscii(writer, lines, config.BannerPath); err != nil {
 		fmt.Printf("Error: %v\n", err)
 		os.Exit(1)
 	}
