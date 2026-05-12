@@ -3,6 +3,7 @@ package test
 import (
 	"strings"
 	"testing"
+	"bytes"
 
 	"ascii-art/internal"
 )
@@ -22,13 +23,16 @@ func expectedRenderedLines(lines []string) int {
 }
 
 func renderStandard(input string) string {
+	var buf bytes.Buffer
+
 	lines := strings.Split(input, "\\n")
-	return captureOutput(func() {
-		err := internal.PrintAscii(lines, "../banners/standard.txt")
-		if err != nil {
-			panic(err)
-		}
-	})
+
+	err := internal.PrintAscii(&buf, lines, "../banners/standard.txt")
+	if err != nil {
+		panic(err)
+	}
+
+	return buf.String()
 }
 
 func TestAuditExamplesNonEdgeCases(t *testing.T) {

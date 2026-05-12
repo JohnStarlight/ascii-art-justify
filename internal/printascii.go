@@ -2,6 +2,7 @@ package internal
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"strings"
 )
@@ -11,7 +12,7 @@ import (
 // separated by a blank line (9 lines per character total).
 // Empty lines in the input produce a single blank line in the output,
 // except for the first element which is skipped if empty.
-func PrintAscii(lines []string, filename string) error {
+func PrintAscii(writer io.Writer, lines []string, filename string) error {
 	data, err := os.ReadFile(filename)
 	if err != nil {
 		return fmt.Errorf("could not open banner file: %w", err)
@@ -31,7 +32,7 @@ func PrintAscii(lines []string, filename string) error {
 		// element to avoid a leading blank line when the input itself is empty.
 		if line == "" {
 			if i > 0 {
-				fmt.Println()
+				fmt.Fprintln(writer)
 			}
 			continue
 		}
@@ -51,7 +52,7 @@ func PrintAscii(lines []string, filename string) error {
 
 				sb.WriteString(bannerLines[index])
 			}
-			fmt.Println(sb.String())
+			fmt.Fprintln(writer, sb.String())
 		}
 	}
 
