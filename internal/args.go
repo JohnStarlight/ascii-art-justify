@@ -5,64 +5,86 @@ import (
 	"strings"
 )
 
+// Config stores validated application configuration parsed from CLI arguments.
 type Config struct {
-	Text string
+	Text       string
 	OutputFile string
 	BannerPath string
 }
 
+// bannerFiles maps banner names to their corresponding banner file paths.
+var bannerFiles = map[string]string{
+	"standard":   "banners/standard.txt",
+	"shadow":     "banners/shadow.txt",
+	"thinkertoy": "banners/thinkertoy.txt",
+}
+
+// ParseArgs validates and parses command-line arguments into a Config.
 func ParseArgs(args []string) (Config, error) {
-if len(args) != 2 && len(args) != 3 && len(args) != 4 {
-	return Config{}, fmt.Errorf(
-    "invalid usage: expected 1, 2 or 3 arguments",
-)
-}
+	if len(args) != 2 && len(args) != 3 && len(args) != 4 {
+		return Config{}, fmt.Errorf(
+			"usage:\n"+
+				"go run ./cmd [STRING]\n"+
+				"go run ./cmd [STRING] [BANNER]\n"+
+				"go run ./cmd --output=<fileName.txt> [STRING] [BANNER]",
+		)
+	}
 
-var text string
+	var text string
+	var outputFile string
+	var banner string
 
-var outputFile string
+	switch len(args) {
+	case 2:
+		text = args[1]
+		banner = "standard"
 
-var banner string
+	case 3:
+		text = args[1]
+		banner = args[2]
 
-bannerFiles := map[string]string{
-	"standard":    "banners/standard.txt",
-	"shadow":      "banners/shadow.txt",
-	"thinkertoy":  "banners/thinkertoy.txt",
-}
+	case 4:
+		if !strings.HasPrefix(args[1], "--output=") {
+			return Config{}, fmt.Errorf(
+				"invalid output flag: expected --output=<fileName.txt>",
+			)
+		}
 
-if len(args) == 2 {
-	text = args[1]
-	banner = "standard"
-}
+		outputFile = strings.TrimPrefix(args[1], "--output=")
 
-if len(args) == 3 {
-	text = args[1]
-	banner = args[2]
-}
+		if outputFile == "" {
+			return Config{}, fmt.Errorf("output filename cannot be empty")
+		}
 
-if len(args) == 4 {
-	if !strings.HasPrefix(args[1], "--output=") {
-	return Config{}, fmt.Errorf(
-		"invalid output flag: expected --output=<fileName.txt>",
-	)
-}
+		text = args[2]
+		banner = args[3]
+	}
 
-	outputFile = strings.TrimPrefix(args[1], "--output=")
-	text = args[2]
-	banner = args[3]
-}
+	bannerPath, exists := bannerFiles[banner]
+	if !exists {
+		return Config{}, fmt.Errorf(
+			"unsupported banner %q",
+			banner,
+		)
+	}
 
-value, exists := bannerFiles[banner]
-if !exists {
-	return Config{}, fmt.Errorf(
-		"unsupported banner %q",
-		banner,
-	)
-}
-return Config{
-	Text: text,
-	OutputFile: outputFile,
-	BannerPath: value,
-}, nil
+	// Only printable ASCII characters (32–126) are supported.
+	for _, r := range text {
+		if r == '\\' {
+			continue
+		}
 
+		if r < 32 || r > 126 {
+			return Config{}, fmt.Errorf(
+				"invalid character %q (only printable ASCII is supported)",
+				r,
+			)
+		}
+	}
+
+	return Config{
+		Text:       text,
+		OutputFile: outputFile,
+		BannerPath: bannerPath,
+	}, nil
 }
