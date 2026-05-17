@@ -8,20 +8,33 @@ import (
 	"ascii-art/internal"
 )
 
+// expectedRenderedLines calculates how many output lines
+// should be produced after rendering ASCII art.
 func expectedRenderedLines(lines []string) int {
 	total := 0
+
 	for i, line := range lines {
+
+		// Empty logical lines generate
+		// a single blank output line.
 		if line == "" {
 			if i > 0 {
 				total++
 			}
 			continue
 		}
+
+		// Each rendered ASCII-art line
+		// occupies 8 visual rows.
 		total += 8
 	}
+
 	return total
 }
 
+// renderStandard renders input text
+// using the standard banner
+// and returns the generated ASCII art.
 func renderStandard(input string) string {
 	var buf bytes.Buffer
 
@@ -35,6 +48,8 @@ func renderStandard(input string) string {
 	return buf.String()
 }
 
+// TestAuditExamplesNonEdgeCases verifies
+// multiple normal rendering scenarios.
 func TestAuditExamplesNonEdgeCases(t *testing.T) {
 	tests := []struct {
 		name        string
@@ -130,21 +145,35 @@ func TestAuditExamplesNonEdgeCases(t *testing.T) {
 
 	for _, tc := range tests {
 		tc := tc
+
 		t.Run(tc.name, func(t *testing.T) {
 			output := renderStandard(tc.input)
+
+			// Ensure rendering produced output.
 			if output == "" {
 				t.Fatalf("expected non-empty output for %q", tc.input)
 			}
 
+			// Verify the correct number of rendered lines.
 			lines := strings.Split(strings.TrimRight(output, "\n"), "\n")
+
 			wantLines := expectedRenderedLines(strings.Split(tc.input, "\\n"))
+
 			if len(lines) != wantLines {
-				t.Fatalf("expected %d rendered lines, got %d", wantLines, len(lines))
+				t.Fatalf(
+					"expected %d rendered lines, got %d",
+					wantLines,
+					len(lines),
+				)
 			}
 
+			// Verify important ASCII-art fragments exist.
 			for _, fragment := range tc.mustContain {
 				if !strings.Contains(output, fragment) {
-					t.Fatalf("expected output to contain %q", fragment)
+					t.Fatalf(
+						"expected output to contain %q",
+						fragment,
+					)
 				}
 			}
 		})
