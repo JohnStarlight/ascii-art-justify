@@ -23,9 +23,9 @@ var bannerFiles = map[string]string{
 func ParseArgs(args []string) (Config, error) {
 	if len(args) != 2 && len(args) != 3 && len(args) != 4 {
 		return Config{}, fmt.Errorf(
-			"usage:\n"+
-				"go run ./cmd [STRING]\n"+
-				"go run ./cmd [STRING] [BANNER]\n"+
+			"usage:\n" +
+				"go run ./cmd [STRING]\n" +
+				"go run ./cmd [STRING] [BANNER]\n" +
 				"go run ./cmd --output=<fileName.txt> [STRING] [BANNER]",
 		)
 	}
@@ -69,19 +69,39 @@ func ParseArgs(args []string) (Config, error) {
 	}
 
 	// Only printable ASCII characters (32–126) are supported.
-	for _, r := range text {
-		if r == '\\' {
+	// The only valid escape sequence is "\n".
+	for i := 0; i < len(text); i++ {
+		char := text[i]
+
+		// Handle escape sequences.
+		if char == '\\' {
+			// "\" cannot be the last character.
+			if i+1 >= len(text) {
+				return Config{}, fmt.Errorf(
+					"invalid escape sequence: trailing backslash",
+				)
+			}
+
+			// Only "\n" is allowed.
+			if text[i+1] != 'n' {
+				return Config{}, fmt.Errorf(
+					"invalid escape sequence \\%c",
+					text[i+1],
+				)
+			}
+
+			// Skip the 'n' because we already validated it.
+			i++
 			continue
 		}
 
-		if r < 32 || r > 126 {
+		if char < 32 || char > 126 {
 			return Config{}, fmt.Errorf(
 				"invalid character %q (only printable ASCII is supported)",
-				r,
+				char,
 			)
 		}
 	}
-
 	return Config{
 		Text:       text,
 		OutputFile: outputFile,
