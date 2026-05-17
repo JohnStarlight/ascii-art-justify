@@ -1,9 +1,9 @@
 package test
 
 import (
+	"bytes"
 	"strings"
 	"testing"
-	"bytes"
 
 	"ascii-art/internal"
 )
