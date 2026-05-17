@@ -9,9 +9,7 @@ import (
 // the specified output file.
 //
 // If the file already exists,
-// its previous contents are erased.
-//
-// Returns the opened file ready for writing.
+// its contents are erased.
 func PrepareOutputFile(filename string) (*os.File, error) {
 	file, err := os.Create(filename)
 	if err != nil {
