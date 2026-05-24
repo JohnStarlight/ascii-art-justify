@@ -31,13 +31,9 @@ var bannerFiles = map[string]string{
 // ParseArgs validates command-line arguments
 // and converts them into a Config struct.
 func ParseArgs(args []string) (Config, error) {
-	// Valid command formats:
-	//
-	// go run ./cmd [STRING]
-	// go run ./cmd [STRING] [BANNER]
-	// go run ./cmd --output=<fileName.txt> [STRING] [BANNER]
-	if len(args) != 2 && len(args) != 3 && len(args) != 4 {
+	if len(args) < 2 || len(args) > 4 {
 		return Config{}, fmt.Errorf(
+			// Valid command formats:
 			"usage:\n" +
 				"go run ./cmd [STRING]\n" +
 				"go run ./cmd [STRING] [BANNER]\n" +
@@ -47,7 +43,7 @@ func ParseArgs(args []string) (Config, error) {
 
 	var text string
 	var outputFile string
-	var banner string
+	banner := "standard" // Default banner
 
 	switch len(args) {
 
@@ -55,7 +51,6 @@ func ParseArgs(args []string) (Config, error) {
 	// go run ./cmd "hello"
 	case 2:
 		text = args[1]
-		banner = "standard"
 
 	// Example:
 	// go run ./cmd "hello" shadow
@@ -66,6 +61,7 @@ func ParseArgs(args []string) (Config, error) {
 	// Example:
 	// go run ./cmd --output=result.txt "hello" shadow
 	case 4:
+		args[1] = strings.ToLower(args[1])
 		// Validate output flag format.
 		if !strings.HasPrefix(args[1], "--output=") {
 			return Config{}, fmt.Errorf(
@@ -89,6 +85,7 @@ func ParseArgs(args []string) (Config, error) {
 	}
 
 	// Verify that the selected banner exists.
+	banner = strings.ToLower(banner)
 	bannerPath, exists := bannerFiles[banner]
 	if !exists {
 		return Config{}, fmt.Errorf(
@@ -97,11 +94,22 @@ func ParseArgs(args []string) (Config, error) {
 		)
 	}
 
-	// Validate input characters.
-	//
-	// Allowed:
-	// - printable ASCII characters (32–126)
-	// - the escape sequence "\n"
+	// Validate the input text.
+	if err := validateText(text); err != nil {
+		return Config{}, err
+	}
+
+	// Return fully validated configuration.
+	return Config{
+		Text:       text,
+		OutputFile: outputFile,
+		BannerPath: bannerPath,
+	}, nil
+}
+
+// Validate input characters and escape sequences.
+func validateText(text string) error {
+
 	for i := 0; i < len(text); i++ {
 		char := text[i]
 
@@ -110,14 +118,14 @@ func ParseArgs(args []string) (Config, error) {
 
 			// '\' cannot appear as the final character.
 			if i+1 >= len(text) {
-				return Config{}, fmt.Errorf(
+				return fmt.Errorf(
 					"invalid escape sequence: trailing backslash",
 				)
 			}
 
 			// Only "\n" is supported.
 			if text[i+1] != 'n' {
-				return Config{}, fmt.Errorf(
+				return fmt.Errorf(
 					"invalid escape sequence \\%c",
 					text[i+1],
 				)
@@ -130,17 +138,11 @@ func ParseArgs(args []string) (Config, error) {
 
 		// Reject non-printable ASCII characters.
 		if char < 32 || char > 126 {
-			return Config{}, fmt.Errorf(
+			return fmt.Errorf(
 				"invalid character %q (only printable ASCII is supported)",
 				char,
 			)
 		}
 	}
-
-	// Return fully validated configuration.
-	return Config{
-		Text:       text,
-		OutputFile: outputFile,
-		BannerPath: bannerPath,
-	}, nil
+	return nil
 }
