@@ -49,13 +49,6 @@ func PrintAscii(
 		)
 	}
 
-	// Validate banner structure before rendering.
-	if strings.Count(string(data), "\n") != expectedNewlines {
-		return fmt.Errorf(
-			"banner file is corrupt or invalid",
-		)
-	}
-
 	// Normalize Windows line endings (\r\n)
 	// into Unix format (\n).
 	normalized := strings.ReplaceAll(
@@ -63,6 +56,13 @@ func PrintAscii(
 		"\r\n",
 		"\n",
 	)
+
+	// Validate banner structure before rendering.
+	if strings.Count(normalized, "\n") != expectedNewlines {
+		return fmt.Errorf(
+			"banner file is corrupt or invalid",
+		)
+	}
 
 	// Split the banner into individual lines.
 	bannerLines := strings.Split(normalized, "\n")

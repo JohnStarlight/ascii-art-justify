@@ -5,11 +5,7 @@ import (
 	"os"
 )
 
-// PrepareOutputFile creates or truncates
-// the specified output file.
-//
-// If the file already exists,
-// its contents are erased.
+// Creates or truncates output file and returns a handle to it.
 func PrepareOutputFile(filename string) (*os.File, error) {
 	file, err := os.Create(filename)
 	if err != nil {
