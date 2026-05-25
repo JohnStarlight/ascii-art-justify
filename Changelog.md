@@ -11,9 +11,9 @@ TODO:
 ✅ printascii.go:52-65 → Normalize πριν Validate
 ✅ main.go:12-20 → αφαίρεση obvious comments
 ✅ main.go:62-65 → αφαίρεση obvious comments
-□ README.md   → ανανέωση
-□ PRD.md      → έλεγχος & ανανέωση
-□ TASK_CARDS.md → έλεγχος & ανανέωση
+✅ README.md   → ανανέωση
+✅ PRD.md      → έλεγχος & ανανέωση
+✅ TASK_CARDS.md → έλεγχος & ανανέωση
 
 1. line 39
 - if len(args) != 2 && len(args) != 3 && len(args) != 4 {
