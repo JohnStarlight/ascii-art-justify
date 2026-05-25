@@ -11,6 +11,11 @@ import (
 // expectedRenderedLines calculates how many output lines
 // should be produced after rendering ASCII art.
 func expectedRenderedLines(lines []string) int {
+	// Strip trailing empty segments to match TrimRight behaviour in assertions.
+	for len(lines) > 0 && lines[len(lines)-1] == "" {
+		lines = lines[:len(lines)-1]
+	}
+
 	total := 0
 
 	for i, line := range lines {

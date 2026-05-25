@@ -18,18 +18,20 @@
 
 # Task: CLI Input Validation
 
-**Goal:** Make CLI failures clear and consistent for wrong arguments and style choices.
+**Goal:** Make CLI failures clear and consistent for wrong arguments and banner choices.
 
 **Depends on:** none
 
 ## Acceptance criteria
 - [ ] Missing argument shows usage guidance.
-- [ ] Invalid style input (non-number or out of range) exits with clear error.
+- [ ] Invalid banner name exits with clear error.
+- [ ] Invalid `--output` format (missing `=` or empty filename) exits with clear error.
 - [ ] Error paths return non-zero exit code.
 
 ## Tests to write first
 - [ ] `TestMissingArgument`: proves app handles no argument correctly.
-- [ ] `TestInvalidStyleChoice`: proves style validation rejects bad values.
+- [ ] `TestInvalidBannerName`: proves banner validation rejects unknown values.
+- [ ] `TestInvalidOutputFlag`: proves malformed `--output` flag is rejected.
 
 ## Notes
 - Keep messages short and friendly for beginner users.
@@ -87,3 +89,24 @@
 
 ## Notes
 - Keep wording simple enough for non-experts.
+
+# Task: File Output Flag
+
+**Goal:** Allow users to write ASCII art directly to a file via `--output=<filename>`.
+
+**Depends on:** CLI Input Validation
+
+## Acceptance criteria
+- [x] `--output=<filename>` writes ASCII art to the specified file.
+- [x] File is created if it does not exist; overwritten if it does.
+- [x] Missing or malformed flag exits with clear error and non-zero status.
+- [x] Without the flag, output still goes to stdout as before.
+
+## Tests to write first
+- [ ] `TestOutputToFile`: proves ASCII art is written correctly to a file.
+- [ ] `TestOutputFileOverwrite`: proves existing file is overwritten without error.
+- [ ] `TestMissingOutputFilename`: proves `--output=` with empty name is rejected.
+
+## Notes
+- Implementation lives in `internal/output.go` and `internal/config.go`.
+- Banner argument is required when `--output` is used.
