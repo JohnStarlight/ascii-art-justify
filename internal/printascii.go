@@ -8,39 +8,22 @@ import (
 )
 
 const (
-	// asciiStart is the ASCII value
-	// of the first printable character (' ').
-	asciiStart = 32
+	asciiStart = 32 // ASCII value of ' ', the first printable character.
 
-	// charHeight is the number of visual rows
-	// used to render each ASCII-art character.
 	charHeight = 8
 
-	// linesPerChar represents how many lines
-	// each character occupies in the banner file:
-	// 8 visual rows + 1 separator line.
+	// 8 visual rows + 1 blank separator line per character in the banner file.
 	linesPerChar = 9
 
-	// expectedNewlines is the total number
-	// of newline characters expected
-	// inside a valid banner file.
+	// 95 printable ASCII characters (32–126) × 9 lines each.
 	expectedNewlines = 855
 )
 
-// PrintAscii renders text as ASCII art
-// using the selected banner file.
-//
-// Output is written to writer,
-// which may be:
-// - the terminal
-// - a file
-// - a test buffer
 func PrintAscii(
 	writer io.Writer,
 	lines []string,
 	filename string,
 ) error {
-	// Read the entire banner file into memory.
 	data, err := os.ReadFile(filename)
 	if err != nil {
 		return fmt.Errorf(
@@ -49,48 +32,39 @@ func PrintAscii(
 		)
 	}
 
-	// Normalize Windows line endings (\r\n)
-	// into Unix format (\n).
+	// Normalize Windows line endings so banner indexing is consistent.
 	normalized := strings.ReplaceAll(
 		string(data),
 		"\r\n",
 		"\n",
 	)
 
-	// Validate banner structure before rendering.
 	if strings.Count(normalized, "\n") != expectedNewlines {
 		return fmt.Errorf(
 			"banner file is corrupt or invalid",
 		)
 	}
 
-	// Split the banner into individual lines.
 	bannerLines := strings.Split(normalized, "\n")
 
-	// Process each logical input line separately.
 	for i, line := range lines {
 
-		// Empty logical lines represent explicit "\n".
+		// Empty logical lines represent explicit "\n" in the input.
 		if line == "" {
-			if i > 0 {
+			if i > 0 { // suppress a blank line before the first rendered block
 				fmt.Fprintln(writer)
 			}
 			continue
 		}
 
-		// Render all 8 visual rows
-		// for the current logical line.
+		// row starts at 1 to skip the blank separator at index 0 of each character block.
 		for row := 1; row <= charHeight; row++ {
 			var sb strings.Builder
 
-			// Process every character in the line.
 			for _, r := range line {
-
-				// Calculate the corresponding line index
-				// inside the banner file.
+				// Each character occupies linesPerChar lines in the banner file.
 				index := (int(r)-asciiStart)*linesPerChar + row
 
-				// Prevent invalid banner indexing.
 				if index >= len(bannerLines) {
 					return fmt.Errorf(
 						"character %q is out of supported range in banner",
@@ -98,12 +72,9 @@ func PrintAscii(
 					)
 				}
 
-				// Append the correct ASCII-art segment
-				// for the current visual row.
 				sb.WriteString(bannerLines[index])
 			}
 
-			// Print the completed visual row.
 			fmt.Fprintln(writer, sb.String())
 		}
 	}
