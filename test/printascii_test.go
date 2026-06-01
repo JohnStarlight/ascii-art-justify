@@ -8,8 +8,6 @@ import (
 	"ascii-art/internal"
 )
 
-// TestEmptyLine verifies that an empty input
-// produces no ASCII-art output.
 func TestEmptyLine(t *testing.T) {
 	var buf bytes.Buffer
 
@@ -29,9 +27,6 @@ func TestEmptyLine(t *testing.T) {
 	}
 }
 
-// TestSingleWord verifies that rendering
-// a normal string produces exactly 8 lines
-// of ASCII art.
 func TestSingleWord(t *testing.T) {
 	var buf bytes.Buffer
 
@@ -46,6 +41,8 @@ func TestSingleWord(t *testing.T) {
 
 	output := buf.String()
 
+	// TrimRight strips the trailing newline that Fprintln appends to each row,
+	// otherwise Split produces a spurious empty element and len == 9.
 	lines := strings.Split(strings.TrimRight(output, "\n"), "\n")
 
 	if len(lines) != 8 {
@@ -53,9 +50,6 @@ func TestSingleWord(t *testing.T) {
 	}
 }
 
-// TestNewlineSeparator verifies that "\n"
-// correctly separates ASCII-art blocks
-// with one empty line between them.
 func TestNewlineSeparator(t *testing.T) {
 	var buf bytes.Buffer
 
@@ -82,9 +76,6 @@ func TestNewlineSeparator(t *testing.T) {
 	}
 }
 
-// TestSpecificCharacter verifies
-// that rendering the character 'A'
-// produces expected ASCII-art content.
 func TestSpecificCharacter(t *testing.T) {
 	var buf bytes.Buffer
 
@@ -101,9 +92,7 @@ func TestSpecificCharacter(t *testing.T) {
 
 	lines := strings.Split(output, "\n")
 
-	// Verify that the 5th visual row
-	// contains an underscore,
-	// which is expected for the letter 'A'.
+	// lines[4] is the 5th row (0-indexed); 'A' has its crossbar there.
 	if !strings.Contains(lines[4], "_") {
 		t.Errorf(
 			"expected 5th line of 'A' to contain '_', got %q",

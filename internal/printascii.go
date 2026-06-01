@@ -19,6 +19,8 @@ const (
 	expectedNewlines = 855
 )
 
+// PrintAscii accepts an io.Writer so the caller decides the destination
+// (terminal, file, or test buffer) without this function needing to know.
 func PrintAscii(
 	writer io.Writer,
 	lines []string,
@@ -39,6 +41,8 @@ func PrintAscii(
 		"\n",
 	)
 
+	// Validate structure before rendering to avoid producing partial output
+	// if the banner file is corrupt or the wrong file was provided.
 	if strings.Count(normalized, "\n") != expectedNewlines {
 		return fmt.Errorf(
 			"banner file is corrupt or invalid",

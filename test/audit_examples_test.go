@@ -8,8 +8,6 @@ import (
 	"ascii-art/internal"
 )
 
-// expectedRenderedLines calculates how many output lines
-// should be produced after rendering ASCII art.
 func expectedRenderedLines(lines []string) int {
 	// Strip trailing empty segments to match TrimRight behaviour in assertions.
 	for len(lines) > 0 && lines[len(lines)-1] == "" {
@@ -19,9 +17,6 @@ func expectedRenderedLines(lines []string) int {
 	total := 0
 
 	for i, line := range lines {
-
-		// Empty logical lines generate
-		// a single blank output line.
 		if line == "" {
 			if i > 0 {
 				total++
@@ -29,21 +24,16 @@ func expectedRenderedLines(lines []string) int {
 			continue
 		}
 
-		// Each rendered ASCII-art line
-		// occupies 8 visual rows.
-		total += 8
+		total += 8 // each ASCII-art character occupies 8 visual rows
 	}
 
 	return total
 }
 
-// renderStandard renders input text
-// using the standard banner
-// and returns the generated ASCII art.
 func renderStandard(input string) string {
 	var buf bytes.Buffer
 
-	lines := strings.Split(input, "\\n")
+	lines := strings.Split(input, "\\n") // literal \n as typed on the CLI, not an actual newline
 
 	err := internal.PrintAscii(&buf, lines, "../banners/standard.txt")
 	if err != nil {
@@ -53,8 +43,6 @@ func renderStandard(input string) string {
 	return buf.String()
 }
 
-// TestAuditExamplesNonEdgeCases verifies
-// multiple normal rendering scenarios.
 func TestAuditExamplesNonEdgeCases(t *testing.T) {
 	tests := []struct {
 		name        string
@@ -149,19 +137,14 @@ func TestAuditExamplesNonEdgeCases(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		tc := tc
-
 		t.Run(tc.name, func(t *testing.T) {
 			output := renderStandard(tc.input)
 
-			// Ensure rendering produced output.
 			if output == "" {
 				t.Fatalf("expected non-empty output for %q", tc.input)
 			}
 
-			// Verify the correct number of rendered lines.
 			lines := strings.Split(strings.TrimRight(output, "\n"), "\n")
-
 			wantLines := expectedRenderedLines(strings.Split(tc.input, "\\n"))
 
 			if len(lines) != wantLines {
@@ -172,7 +155,6 @@ func TestAuditExamplesNonEdgeCases(t *testing.T) {
 				)
 			}
 
-			// Verify important ASCII-art fragments exist.
 			for _, fragment := range tc.mustContain {
 				if !strings.Contains(output, fragment) {
 					t.Fatalf(
