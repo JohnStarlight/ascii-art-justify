@@ -17,7 +17,10 @@ var bannerFiles = map[string]string{
 	"thinkertoy": "banners/thinkertoy.txt",
 }
 
+// ParseArgs receives args as a parameter rather than reading os.Args directly
+// so tests can inject arbitrary argument lists without spawning a subprocess.
 func ParseArgs(args []string) (Config, error) {
+	// args[0] is always the binary name, so the minimum meaningful length is 2.
 	if len(args) < 2 || len(args) > 4 {
 		return Config{}, fmt.Errorf(
 			"usage:\n" +
@@ -40,7 +43,7 @@ func ParseArgs(args []string) (Config, error) {
 		banner = args[2]
 
 	case 4:
-		args[1] = strings.ToLower(args[1])
+		args[1] = strings.ToLower(args[1]) // accept --Output=, --OUTPUT=, etc.
 		if !strings.HasPrefix(args[1], "--output=") {
 			return Config{}, fmt.Errorf(
 				"invalid output flag: expected --output=<fileName.txt>",
@@ -80,6 +83,8 @@ func ParseArgs(args []string) (Config, error) {
 }
 
 func validateText(text string) error {
+	// Byte iteration (not range) so we can manipulate i to skip the second
+	// character of a \n escape sequence without rune-width complications.
 	for i := 0; i < len(text); i++ {
 		char := text[i]
 

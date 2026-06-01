@@ -9,6 +9,8 @@ import (
 	"ascii-art/internal"
 )
 
+// run exists so that main stays minimal and all errors surface in one place
+// instead of calling os.Exit at multiple points throughout the code.
 func run() error {
 	config, err := internal.ParseArgs(os.Args)
 	if err != nil {
