@@ -9,7 +9,6 @@ import (
 	"ascii-art/internal"
 )
 
-// run contains the main application logic.
 func run() error {
 	config, err := internal.ParseArgs(os.Args)
 	if err != nil {
@@ -24,16 +23,14 @@ func run() error {
 			return err
 		}
 
-		// Ensure the file is closed before run exits.
 		defer file.Close()
 
 		writer = file
 	}
 
-	// Split the input text into separate logical lines.
+	// Split on the literal two-character sequence \n as typed on the CLI.
 	lines := strings.Split(config.Text, "\\n")
 
-	// Render ASCII art using the selected banner.
 	if err := internal.PrintAscii(
 		writer,
 		lines,
@@ -45,7 +42,6 @@ func run() error {
 	return nil
 }
 
-// Any error is returned to main for centralized handling.
 func main() {
 	if err := run(); err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)

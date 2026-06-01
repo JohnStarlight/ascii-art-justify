@@ -5,8 +5,8 @@ import (
 	"os"
 )
 
-// Creates or truncates output file and returns a handle to it.
 func PrepareOutputFile(filename string) (*os.File, error) {
+	// os.Create truncates any existing file at this path.
 	file, err := os.Create(filename)
 	if err != nil {
 		return nil, fmt.Errorf(
