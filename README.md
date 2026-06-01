@@ -10,6 +10,7 @@ A simple Go command-line tool that turns text into ASCII art.
   - `standard`
   - `shadow`
   - `thinkertoy`
+- Optionally writes the output to a file using `--output=<filename>`
 
 ## Quick Start
 
@@ -19,31 +20,30 @@ From project root:
 go run ./cmd "Hello"
 ```
 
+```bash
+go run ./cmd "Hello" shadow
+```
+
+```bash
+go run ./cmd --output=result.txt "Hello" shadow
+```
+
 Important:
 Always pass your full input inside quotes (`"..."`) for correct results.
-
-You will be asked to choose style:
-
-- `1` Standard
-- `2` Shadow
-- `3` Thinkertoy
 
 ## Usage Example
 
 ```bash
-go run ./cmd "Hello There"
+go run ./cmd "Hello There" thinkertoy
 ```
 
-Example flow:
+Prints the ASCII art to the terminal.
 
-```text
-In which style would you like that?
-1 = Standard
-2 = Shadow
-3 = Thinkertoy
+```bash
+go run ./cmd --output=out.txt "Hello There" standard
 ```
 
-After selecting style, the program prints the ASCII-art output for your text.
+Writes the ASCII art to `out.txt` instead of printing to the terminal. The file is created (or overwritten) automatically.
 
 ## Input Rules
 
@@ -85,8 +85,10 @@ Forces tests to run again even if previous results were cached.
 
 ## Project Structure
 
-- `cmd/main.go` - CLI entrypoint and user interaction
+- `cmd/main.go` - CLI entrypoint and argument handling
+- `internal/config.go` - argument parsing and validation
 - `internal/printascii.go` - ASCII rendering logic
+- `internal/output.go` - output file creation
 - `banners/*.txt` - banner templates
 - `test/printascii_test.go` - core unit tests
 - `test/audit_examples_test.go` - audit/instruction sample tests
@@ -95,7 +97,7 @@ Forces tests to run again even if previous results were cached.
 
 - Supports printable ASCII characters only (`32` to `126`)
 - Unicode characters (for example Greek letters or emoji) are rejected
-- Style selection is interactive (stdin prompt), not a CLI flag
+- When using `--output`, the banner argument is required (no default when the flag is present)
 
 ## License
 
