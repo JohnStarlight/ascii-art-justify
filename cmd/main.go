@@ -35,6 +35,8 @@ func run() error {
 
 	if err := internal.PrintAscii(
 		writer,
+		config.Color,
+		config.Part,
 		lines,
 		config.BannerPath,
 	); err != nil {

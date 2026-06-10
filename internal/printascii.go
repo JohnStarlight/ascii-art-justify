@@ -19,10 +19,9 @@ const (
 	expectedNewlines = 855
 )
 
-// PrintAscii accepts an io.Writer so the caller decides the destination
-// (terminal, file, or test buffer) without this function needing to know.
 func PrintAscii(
 	writer io.Writer,
+	color, part string,
 	lines []string,
 	filename string,
 ) error {
@@ -34,39 +33,32 @@ func PrintAscii(
 		)
 	}
 
-	// Normalize Windows line endings so banner indexing is consistent.
-	normalized := strings.ReplaceAll(
-		string(data),
-		"\r\n",
-		"\n",
-	)
+	normalized := strings.ReplaceAll(string(data), "\r\n", "\n")
 
-	// Validate structure before rendering to avoid producing partial output
-	// if the banner file is corrupt or the wrong file was provided.
 	if strings.Count(normalized, "\n") != expectedNewlines {
-		return fmt.Errorf(
-			"banner file is corrupt or invalid",
-		)
+		return fmt.Errorf("banner file is corrupt or invalid")
 	}
 
 	bannerLines := strings.Split(normalized, "\n")
 
 	for i, line := range lines {
-
-		// Empty logical lines represent explicit "\n" in the input.
 		if line == "" {
-			if i > 0 { // suppress a blank line before the first rendered block
+			if i > 0 {
 				fmt.Fprintln(writer)
 			}
 			continue
 		}
 
-		// row starts at 1 to skip the blank separator at index 0 of each character block.
+		starts := findAll(line, part)
+		partLen := len(part)
+		if color != "" && part == "" {
+			partLen = len(line)
+		}
+
 		for row := 1; row <= charHeight; row++ {
 			var sb strings.Builder
 
-			for _, r := range line {
-				// Each character occupies linesPerChar lines in the banner file.
+			for pos, r := range line {
 				index := (int(r)-asciiStart)*linesPerChar + row
 
 				if index >= len(bannerLines) {
@@ -76,7 +68,12 @@ func PrintAscii(
 					)
 				}
 
-				sb.WriteString(bannerLines[index])
+				segment := bannerLines[index]
+				if color != "" && inColorRange(pos, starts, partLen) {
+					sb.WriteString(color + segment + "\033[0m")
+				} else {
+					sb.WriteString(segment)
+				}
 			}
 
 			fmt.Fprintln(writer, sb.String())
@@ -84,4 +81,30 @@ func PrintAscii(
 	}
 
 	return nil
+}
+
+func findAll(line, part string) []int {
+	if part == "" {
+		return []int{0}
+	}
+	var starts []int
+	offset := 0
+	for {
+		idx := strings.Index(line[offset:], part)
+		if idx == -1 {
+			break
+		}
+		starts = append(starts, offset+idx)
+		offset += idx + len(part)
+	}
+	return starts
+}
+
+func inColorRange(pos int, starts []int, partLen int) bool {
+	for _, start := range starts {
+		if pos >= start && pos < start+partLen {
+			return true
+		}
+	}
+	return false
 }

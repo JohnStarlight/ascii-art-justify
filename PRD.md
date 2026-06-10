@@ -18,13 +18,19 @@ Supported forms:
 go run ./cmd "<text>"
 go run ./cmd "<text>" <banner>
 go run ./cmd --output=<filename> "<text>" <banner>
+go run ./cmd --color=<color> "<text>"
+go run ./cmd --color=<color> "<substring>" "<text>"
+go run ./cmd --color=<color> "<substring>" "<text>" <banner>
 ```
 
 - `<text>`: required, must be in quotes for multi-word input
 - `<banner>`: optional positional arg; defaults to `standard`; accepted values: `standard`, `shadow`, `thinkertoy`
 - `--output=<filename>`: optional flag; when present, writes ASCII art to file instead of stdout; banner becomes required
-- Arg count outside `[1, 3]` (excluding program name): print usage guidance and exit
+- `--color=<color>`: optional flag; colors the rendered output (see 3.5)
+- `<substring>`: optional positional arg, only meaningful with `--color`; the portion of `<text>` to color. If omitted, the whole text is colored.
+- `--color`/`--output` flags can appear in any order/position among the arguments
 - Invalid `--output` format (missing `=` or empty filename): print error and exit with non-zero status
+- Invalid `--color` format (missing `=`, empty value, or unknown color): print usage message and exit with non-zero status
 - Invalid chars (outside ASCII 32-126):
   - print clear error message
   - exit with non-zero status
@@ -75,6 +81,21 @@ Examples:
 Example:
 - `A` -> prints 8 lines that correspond to ASCII code 65 in the selected banner.
 
+### 3.5 Color Highlighting
+
+- `--color=<color>` colors the rendered ASCII art using ANSI 24-bit (`\033[38;2;R;G;Bm`) escape codes.
+- Accepted color names: `red`, `green`, `blue`, `yellow`, `magenta`/`purple`, `cyan`.
+- Custom colors via `rgb(R,G,B)`, e.g. `"--color=rgb(255,128,0)"` (quotes required, see below).
+- An optional `<substring>` positional argument selects which part of `<text>` is colored; all occurrences of the substring are colored.
+- If `<substring>` is omitted, the entire rendered text is colored.
+- Unknown color name, malformed `rgb(...)`, or malformed `--color` flag (missing `=` or empty value): print usage message and exit with non-zero status.
+- Shell note: `rgb(...)` contains parentheses, which are special characters in most shells. The whole flag must be quoted, e.g. `"--color=rgb(0,200,255)"`.
+
+Examples:
+- `go run ./cmd --color=red "Hello"` -> entire `Hello` rendered in red.
+- `go run ./cmd --color=red "ell" "Hello"` -> only the `ell` substring rendered in red.
+- `go run ./cmd "--color=rgb(0,200,255)" "Hello" shadow` -> entire `Hello` rendered in custom RGB color, `shadow` banner.
+
 ---
 
 ## 4. Non-Goals
@@ -82,7 +103,7 @@ Example:
 - Unicode support beyond printable ASCII
 - GUI/Web interface
 - Custom user-uploaded fonts
-- Rich text features (color, alignment, animation)
+- Rich text features beyond single-color highlighting (alignment, animation, gradients, multiple colors per call)
 
 ---
 
@@ -135,3 +156,5 @@ Sketch (high-level):
 - Rendering is limited to printable ASCII (`32-126`).
 - Input with Unicode symbols (for example Greek characters or emoji) is not supported.
 - When `--output` is used, banner argument is required (no fallback to default).
+- Only one color can be applied per invocation; the colored substring is matched literally (no regex/wildcards).
+- ANSI color codes are written even when output is redirected to a file via `--output` (no automatic stripping for non-terminal targets).
