@@ -13,6 +13,7 @@ func TestEmptyLine(t *testing.T) {
 
 	err := internal.PrintAscii(
 		&buf,
+		"", "",
 		[]string{""},
 		"../banners/standard.txt",
 	)
@@ -32,6 +33,7 @@ func TestSingleWord(t *testing.T) {
 
 	err := internal.PrintAscii(
 		&buf,
+		"", "",
 		[]string{"Hi"},
 		"../banners/standard.txt",
 	)
@@ -55,6 +57,7 @@ func TestNewlineSeparator(t *testing.T) {
 
 	err := internal.PrintAscii(
 		&buf,
+		"", "",
 		[]string{"Hi", "", "There"},
 		"../banners/standard.txt",
 	)
@@ -81,6 +84,7 @@ func TestSpecificCharacter(t *testing.T) {
 
 	err := internal.PrintAscii(
 		&buf,
+		"", "",
 		[]string{"A"},
 		"../banners/standard.txt",
 	)

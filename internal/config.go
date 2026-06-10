@@ -7,6 +7,8 @@ import (
 
 type Config struct {
 	Text       string
+	Color      string
+	Part       string
 	OutputFile string
 	BannerPath string
 }
@@ -20,66 +22,114 @@ var bannerFiles = map[string]string{
 // ParseArgs receives args as a parameter rather than reading os.Args directly
 // so tests can inject arbitrary argument lists without spawning a subprocess.
 func ParseArgs(args []string) (Config, error) {
-	// args[0] is always the binary name, so the minimum meaningful length is 2.
-	if len(args) < 2 || len(args) > 4 {
-		return Config{}, fmt.Errorf(
-			"usage:\n" +
-				"go run ./cmd [STRING]\n" +
-				"go run ./cmd [STRING] [BANNER]\n" +
-				"go run ./cmd --output=<fileName.txt> [STRING] [BANNER]",
-		)
+	if len(args) < 2 {
+		return Config{}, usageError()
 	}
 
-	var text string
-	var outputFile string
+	var colorFlag, outputFlag string
+	var positionals []string
+	outputProvided := false
+
+	for _, arg := range args[1:] {
+		lower := strings.ToLower(arg)
+		switch {
+		case strings.HasPrefix(lower, "--color="):
+			colorFlag = arg[len("--color="):]
+			if colorFlag == "" {
+				return Config{}, colorUsageError()
+			}
+		case strings.HasPrefix(lower, "--color"):
+			return Config{}, colorUsageError()
+		case strings.HasPrefix(lower, "--output="):
+			outputProvided = true
+			outputFlag = arg[len("--output="):]
+		default:
+			positionals = append(positionals, arg)
+		}
+	}
+
+	if outputProvided && outputFlag == "" {
+		return Config{}, fmt.Errorf("output filename cannot be empty")
+	}
+
+	var text, part string
 	banner := "standard"
 
-	switch len(args) {
-	case 2:
-		text = args[1]
-
-	case 3:
-		text = args[1]
-		banner = args[2]
-
-	case 4:
-		args[1] = strings.ToLower(args[1]) // accept --Output=, --OUTPUT=, etc.
-		if !strings.HasPrefix(args[1], "--output=") {
-			return Config{}, fmt.Errorf(
-				"invalid output flag: expected --output=<fileName.txt>",
-			)
+	if colorFlag != "" {
+		switch len(positionals) {
+		case 1:
+			text = positionals[0]
+		case 2:
+			if _, ok := bannerFiles[strings.ToLower(positionals[1])]; ok {
+				text = positionals[0]
+				banner = strings.ToLower(positionals[1])
+			} else {
+				part = positionals[0]
+				text = positionals[1]
+			}
+		case 3:
+			part = positionals[0]
+			text = positionals[1]
+			banner = strings.ToLower(positionals[2])
+		default:
+			return Config{}, usageError()
 		}
-
-		outputFile = strings.TrimPrefix(args[1], "--output=")
-
-		if outputFile == "" {
-			return Config{}, fmt.Errorf(
-				"output filename cannot be empty",
-			)
+	} else {
+		switch len(positionals) {
+		case 1:
+			text = positionals[0]
+		case 2:
+			text = positionals[0]
+			banner = strings.ToLower(positionals[1])
+		default:
+			return Config{}, usageError()
 		}
-
-		text = args[2]
-		banner = args[3]
 	}
 
-	banner = strings.ToLower(banner)
 	bannerPath, exists := bannerFiles[banner]
 	if !exists {
-		return Config{}, fmt.Errorf(
-			"unsupported banner %q",
-			banner,
-		)
+		return Config{}, fmt.Errorf("unsupported banner %q", banner)
 	}
 
 	if err := validateText(text); err != nil {
 		return Config{}, err
 	}
 
+	var color string
+	if colorFlag != "" {
+		var err error
+		color, err = Palette(colorFlag)
+		if err != nil {
+			return Config{}, err
+		}
+	}
+
 	return Config{
 		Text:       text,
-		OutputFile: outputFile,
+		Color:      color,
+		Part:       part,
+		OutputFile: outputFlag,
 		BannerPath: bannerPath,
 	}, nil
+}
+
+func colorUsageError() error {
+	return fmt.Errorf(
+		"Usage: go run . [OPTION] [STRING]\n\n" +
+			"EX: go run . --color=<color> <substring to be colored> \"something\"",
+	)
+}
+
+func usageError() error {
+	return fmt.Errorf(
+		"usage:\n" +
+			"  go run ./cmd [STRING]\n" +
+			"  go run ./cmd [STRING] [BANNER]\n" +
+			"  go run ./cmd --output=<file.txt> [STRING] [BANNER]\n" +
+			"  go run ./cmd --color=<color> [STRING]\n" +
+			"  go run ./cmd --color=<color> [SUBSTRING] [STRING]\n" +
+			"  go run ./cmd --color=<color> [SUBSTRING] [STRING] [BANNER]",
+	)
 }
 
 func validateText(text string) error {
