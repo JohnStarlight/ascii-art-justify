@@ -79,7 +79,13 @@ func PrintAscii(
 			rows = append(rows, sb.String()) // NEW: keep the rendered row instead of printing immediately.
 		}
 
-		rows = alignRows(rows, config.Align, TerminalWidth()) // NEW: applies left/center/right alignment before printing.
+		terminalWidth := TerminalWidth() // NEW: read terminal width once before applying alignment.
+
+		if config.Align == "justify" {
+			rows = justifyRows(line, bannerLines, terminalWidth, config) // NEW: justify needs the original text line to spread spaces between words.
+		} else {
+			rows = alignRows(rows, config.Align, terminalWidth) // NEW: left/center/right use the already-rendered rows.
+		}
 
 		for _, renderedRow := range rows {
 			fmt.Fprintln(writer, renderedRow)
