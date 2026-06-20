@@ -2,6 +2,11 @@ package internal
 
 import "strings"
 
+type wordBlock struct {
+	text  string
+	start int
+}
+
 // NEW: alignRows receives already-rendered ASCII rows and adds spaces
 // in front of each row depending on the selected alignment.
 func alignRows(rows []string, align string, terminalWidth int) []string {
@@ -43,22 +48,35 @@ func justifyRows(
 	terminalWidth int,
 	config Config,
 ) []string {
-	_ = config // NEW: placeholder so we can later support justify together with color options.
-
-	words := strings.Fields(line)
+	words := splitWordsWithPositions(line)
 
 	// A single word cannot be justified.
 	if len(words) < 2 {
-		return renderWordRows(line, bannerLines)
+		return renderWordRows(line, 0, bannerLines, config, line)
 	}
 
-	wordRows := make([][]string, 0, len(words)) // NEW: stores the 8 rendered rows for each word.
-	wordWidths := make([]int, 0, len(words))    // NEW: stores the real ASCII width of each word block.
-	totalWordWidth := 0                         // NEW: total width of all word blocks without spaces.
+	colorStarts := findAll(line, config.Part)
+	partLen := len(config.Part)
+
+	if config.Color != "" && config.Part == "" {
+		partLen = len(line)
+	}
+
+	wordRows := make([][]string, 0, len(words))
+	wordWidths := make([]int, 0, len(words))
+	totalWordWidth := 0
 
 	for _, word := range words {
-		renderedWordRows := renderWordRows(word, bannerLines)
-		width := maxRowWidth(renderedWordRows) // NEW: use the widest row, not only row 0.
+		renderedWordRows := renderWordRows(
+			word.text,
+			word.start,
+			bannerLines,
+			config,
+			line,
+		)
+
+		plainWordRows := renderPlainWordRows(word.text, bannerLines)
+		width := maxRowWidth(plainWordRows)
 
 		wordRows = append(wordRows, renderedWordRows)
 		wordWidths = append(wordWidths, width)
@@ -70,19 +88,19 @@ func justifyRows(
 	spacesToDistribute := terminalWidth - totalWordWidth
 
 	if spacesToDistribute <= 0 {
-		return renderWordRows(line, bannerLines)
+		return renderWordRows(line, 0, bannerLines, config, line)
 	}
 
 	spacePerGap := spacesToDistribute / gaps
 	extraSpaces := spacesToDistribute % gaps
 
-	justified := make([]string, 0, charHeight) // NEW: final 8 rows after spreading spaces between words.
+	justified := make([]string, 0, charHeight)
 
 	for row := 0; row < charHeight; row++ {
 		var sb strings.Builder
 
 		for wordIndex, rows := range wordRows {
-			sb.WriteString(padRight(rows[row], wordWidths[wordIndex])) // NEW: keep each word block aligned to its real width.
+			sb.WriteString(padRight(rows[row], wordWidths[wordIndex]))
 
 			if wordIndex < gaps {
 				spaces := spacePerGap
@@ -98,12 +116,85 @@ func justifyRows(
 		justified = append(justified, sb.String())
 	}
 
+	_ = colorStarts
+	_ = partLen
+
 	return justified
 }
 
-// NEW: renderWordRows renders one word into its 8 ASCII-art rows.
-// Justify needs this because it must place spaces between whole word blocks.
+// NEW: splitWordsWithPositions keeps each word together with its original
+// start position inside the input line. This is needed for substring coloring.
+func splitWordsWithPositions(line string) []wordBlock {
+	var words []wordBlock
+
+	i := 0
+	for i < len(line) {
+		for i < len(line) && line[i] == ' ' {
+			i++
+		}
+
+		if i >= len(line) {
+			break
+		}
+
+		start := i
+
+		for i < len(line) && line[i] != ' ' {
+			i++
+		}
+
+		words = append(words, wordBlock{
+			text:  line[start:i],
+			start: start,
+		})
+	}
+
+	return words
+}
+
+// NEW: renderWordRows renders text into its 8 ASCII-art rows.
+// It is color-aware, so justify can work together with --color.
 func renderWordRows(
+	text string,
+	startPosition int,
+	bannerLines []string,
+	config Config,
+	fullLine string,
+) []string {
+	rows := make([]string, 0, charHeight)
+
+	colorStarts := findAll(fullLine, config.Part)
+	partLen := len(config.Part)
+
+	if config.Color != "" && config.Part == "" {
+		partLen = len(fullLine)
+	}
+
+	for row := 1; row <= charHeight; row++ {
+		var sb strings.Builder
+
+		for pos, r := range text {
+			index := (int(r)-asciiStart)*linesPerChar + row
+			segment := bannerLines[index]
+
+			absolutePos := startPosition + pos
+
+			if config.Color != "" && inColorRange(absolutePos, colorStarts, partLen) {
+				sb.WriteString(config.Color + segment + "\033[0m")
+			} else {
+				sb.WriteString(segment)
+			}
+		}
+
+		rows = append(rows, sb.String())
+	}
+
+	return rows
+}
+
+// NEW: renderPlainWordRows renders without color.
+// Justify uses this only to measure the visual width correctly.
+func renderPlainWordRows(
 	word string,
 	bannerLines []string,
 ) []string {
@@ -140,11 +231,36 @@ func maxRowWidth(rows []string) int {
 
 // NEW: padRight adds spaces to the end of a row until it reaches width.
 func padRight(row string, width int) string {
-	padding := width - len(row)
+	padding := width - visibleLen(row)
 
 	if padding <= 0 {
 		return row
 	}
 
 	return row + strings.Repeat(" ", padding)
+}
+
+// NEW: visibleLen counts visible characters only.
+// ANSI color codes are ignored because they do not take terminal space.
+func visibleLen(s string) int {
+	count := 0
+	inEscape := false
+
+	for i := 0; i < len(s); i++ {
+		if s[i] == '\033' {
+			inEscape = true
+			continue
+		}
+
+		if inEscape {
+			if s[i] == 'm' {
+				inEscape = false
+			}
+			continue
+		}
+
+		count++
+	}
+
+	return count
 }
