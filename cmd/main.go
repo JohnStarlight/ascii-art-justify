@@ -33,13 +33,9 @@ func run() error {
 	// Split on the literal two-character sequence \n as typed on the CLI.
 	lines := strings.Split(config.Text, "\\n")
 
-	if err := internal.PrintAscii(
-		writer,
-		config.Color,
-		config.Part,
-		lines,
-		config.BannerPath,
-	); err != nil {
+	// NEW: pass the whole config to PrintAscii so future extensions
+	// like --align can be used without adding more and more parameters.
+	if err := internal.PrintAscii(writer, config, lines); err != nil {
 		return err
 	}
 

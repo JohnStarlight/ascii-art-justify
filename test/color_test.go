@@ -64,7 +64,13 @@ func TestPaletteInvalidRGB(t *testing.T) {
 func TestPrintAsciiNoColor(t *testing.T) {
 	var buf bytes.Buffer
 
-	err := internal.PrintAscii(&buf, "", "", []string{"Hi"}, "../banners/standard.txt")
+	err := internal.PrintAscii(
+		&buf,
+		internal.Config{ // NEW: PrintAscii now receives Config instead of separate color/part/banner arguments.
+			BannerPath: "../banners/standard.txt",
+		},
+		[]string{"Hi"},
+	)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -82,7 +88,14 @@ func TestPrintAsciiWholeStringColored(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	err = internal.PrintAscii(&buf, color, "", []string{"Hi"}, "../banners/standard.txt")
+	err = internal.PrintAscii(
+		&buf,
+		internal.Config{ // NEW: Color is now passed through Config.
+			Color:      color,
+			BannerPath: "../banners/standard.txt",
+		},
+		[]string{"Hi"},
+	)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -106,7 +119,15 @@ func TestPrintAsciiPartialColor(t *testing.T) {
 	}
 
 	// "Hi" with only "H" colored.
-	err = internal.PrintAscii(&buf, color, "H", []string{"Hi"}, "../banners/standard.txt")
+	err = internal.PrintAscii(
+		&buf,
+		internal.Config{ // NEW: Color and Part are now grouped inside Config.
+			Color:      color,
+			Part:       "H",
+			BannerPath: "../banners/standard.txt",
+		},
+		[]string{"Hi"},
+	)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -125,7 +146,13 @@ func TestPrintAsciiPartialColor(t *testing.T) {
 
 	// Without coloring, the same input should produce different (uncolored) output.
 	var plainBuf bytes.Buffer
-	err = internal.PrintAscii(&plainBuf, "", "", []string{"Hi"}, "../banners/standard.txt")
+	err = internal.PrintAscii(
+		&plainBuf,
+		internal.Config{ // NEW: plain render uses Config with only BannerPath set.
+			BannerPath: "../banners/standard.txt",
+		},
+		[]string{"Hi"},
+	)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
