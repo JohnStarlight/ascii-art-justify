@@ -8,24 +8,20 @@ import (
 )
 
 const (
-	asciiStart = 32 // ASCII value of ' ', the first printable character.
-
-	charHeight = 8
-
-	// 8 visual rows + 1 blank separator line per character in the banner file.
-	linesPerChar = 9
-
-	// 95 printable ASCII characters (32–126) × 9 lines each.
+	asciiStart       = 32
+	charHeight       = 8
+	linesPerChar     = 9
 	expectedNewlines = 855
 )
 
+// NEW: receives the whole Config so extensions like --align can be used
+// without adding more and more parameters to PrintAscii.
 func PrintAscii(
 	writer io.Writer,
-	color, part string,
+	config Config,
 	lines []string,
-	filename string,
 ) error {
-	data, err := os.ReadFile(filename)
+	data, err := os.ReadFile(config.BannerPath) // NEW: banner path now comes from config
 	if err != nil {
 		return fmt.Errorf(
 			"could not open banner file: %w",
@@ -49,11 +45,14 @@ func PrintAscii(
 			continue
 		}
 
-		starts := findAll(line, part)
-		partLen := len(part)
-		if color != "" && part == "" {
+		starts := findAll(line, config.Part) // NEW: color substring now comes from config
+		partLen := len(config.Part)
+
+		if config.Color != "" && config.Part == "" {
 			partLen = len(line)
 		}
+
+		rows := make([]string, 0, charHeight) // NEW: stores the 8 rendered ASCII rows before printing, so we can align them.
 
 		for row := 1; row <= charHeight; row++ {
 			var sb strings.Builder
@@ -69,14 +68,21 @@ func PrintAscii(
 				}
 
 				segment := bannerLines[index]
-				if color != "" && inColorRange(pos, starts, partLen) {
-					sb.WriteString(color + segment + "\033[0m")
+
+				if config.Color != "" && inColorRange(pos, starts, partLen) {
+					sb.WriteString(config.Color + segment + "\033[0m") // NEW: color now comes from config
 				} else {
 					sb.WriteString(segment)
 				}
 			}
 
-			fmt.Fprintln(writer, sb.String())
+			rows = append(rows, sb.String()) // NEW: keep the rendered row instead of printing immediately.
+		}
+
+		rows = alignRows(rows, config.Align, TerminalWidth()) // NEW: applies left/center/right alignment before printing.
+
+		for _, renderedRow := range rows {
+			fmt.Fprintln(writer, renderedRow)
 		}
 	}
 
@@ -87,16 +93,20 @@ func findAll(line, part string) []int {
 	if part == "" {
 		return []int{0}
 	}
+
 	var starts []int
 	offset := 0
+
 	for {
 		idx := strings.Index(line[offset:], part)
 		if idx == -1 {
 			break
 		}
+
 		starts = append(starts, offset+idx)
 		offset += idx + len(part)
 	}
+
 	return starts
 }
 
@@ -106,5 +116,6 @@ func inColorRange(pos int, starts []int, partLen int) bool {
 			return true
 		}
 	}
+
 	return false
 }
