@@ -10,6 +10,7 @@ type Config struct {
 	Color      string
 	Part       string
 	OutputFile string
+	Align      string // NEW: stores the selected alignment from --align=<type>
 	BannerPath string
 }
 
@@ -26,23 +27,36 @@ func ParseArgs(args []string) (Config, error) {
 		return Config{}, usageError()
 	}
 
-	var colorFlag, outputFlag string
+	var colorFlag, outputFlag, alignFlag string // NEW: alignFlag temporarily stores --align value
 	var positionals []string
 	outputProvided := false
 
 	for _, arg := range args[1:] {
 		lower := strings.ToLower(arg)
+
 		switch {
 		case strings.HasPrefix(lower, "--color="):
 			colorFlag = arg[len("--color="):]
 			if colorFlag == "" {
 				return Config{}, colorUsageError()
 			}
+
+		case strings.HasPrefix(lower, "--align="): // NEW: accepts exactly --align=<type>
+			alignFlag = strings.ToLower(arg[len("--align="):])
+			if alignFlag == "" {
+				return Config{}, alignUsageError()
+			}
+
+		case strings.HasPrefix(lower, "--align"): // NEW: rejects wrong formats like --align center or --align
+			return Config{}, alignUsageError()
+
 		case strings.HasPrefix(lower, "--color"):
 			return Config{}, colorUsageError()
+
 		case strings.HasPrefix(lower, "--output="):
 			outputProvided = true
 			outputFlag = arg[len("--output="):]
+
 		default:
 			positionals = append(positionals, arg)
 		}
@@ -91,6 +105,17 @@ func ParseArgs(args []string) (Config, error) {
 		return Config{}, fmt.Errorf("unsupported banner %q", banner)
 	}
 
+	// NEW: validates --align value after all arguments have been parsed.
+	// Only the four alignments required by the subject are accepted.
+	if alignFlag != "" {
+		switch alignFlag {
+		case "left", "right", "center", "justify":
+		// valid alignment, continue normally
+		default:
+			return Config{}, alignUsageError()
+		}
+	}
+
 	if err := validateText(text); err != nil {
 		return Config{}, err
 	}
@@ -109,6 +134,7 @@ func ParseArgs(args []string) (Config, error) {
 		Color:      color,
 		Part:       part,
 		OutputFile: outputFlag,
+		Align:      alignFlag, // NEW: saves the alignment inside Config so main/renderer can use it later
 		BannerPath: bannerPath,
 	}, nil
 }
@@ -120,6 +146,14 @@ func colorUsageError() error {
 	)
 }
 
+// NEW: specific usage message required by the ascii-art-justify subject.
+func alignUsageError() error {
+	return fmt.Errorf(
+		"Usage: go run . [OPTION] [STRING] [BANNER]\n\n" +
+			"EX: go run . --align=right something standard",
+	)
+}
+
 func usageError() error {
 	return fmt.Errorf(
 		"usage:\n" +
@@ -128,7 +162,8 @@ func usageError() error {
 			"  go run ./cmd --output=<file.txt> [STRING] [BANNER]\n" +
 			"  go run ./cmd --color=<color> [STRING]\n" +
 			"  go run ./cmd --color=<color> [SUBSTRING] [STRING]\n" +
-			"  go run ./cmd --color=<color> [SUBSTRING] [STRING] [BANNER]",
+			"  go run ./cmd --color=<color> [SUBSTRING] [STRING] [BANNER]\n" +
+			"  go run ./cmd --align=<type> [STRING] [BANNER]",
 	)
 }
 
@@ -164,5 +199,6 @@ func validateText(text string) error {
 			)
 		}
 	}
+
 	return nil
 }

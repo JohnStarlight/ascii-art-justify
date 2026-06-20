@@ -13,9 +13,10 @@ func TestEmptyLine(t *testing.T) {
 
 	err := internal.PrintAscii(
 		&buf,
-		"", "",
+		internal.Config{ // NEW: PrintAscii now receives Config instead of separate color/part/banner arguments.
+			BannerPath: "../banners/standard.txt",
+		},
 		[]string{""},
-		"../banners/standard.txt",
 	)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -33,9 +34,10 @@ func TestSingleWord(t *testing.T) {
 
 	err := internal.PrintAscii(
 		&buf,
-		"", "",
+		internal.Config{ // NEW: banner path is now passed through Config.
+			BannerPath: "../banners/standard.txt",
+		},
 		[]string{"Hi"},
-		"../banners/standard.txt",
 	)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -57,9 +59,10 @@ func TestNewlineSeparator(t *testing.T) {
 
 	err := internal.PrintAscii(
 		&buf,
-		"", "",
+		internal.Config{ // NEW: keeps renderer inputs grouped in Config for extensions like --align.
+			BannerPath: "../banners/standard.txt",
+		},
 		[]string{"Hi", "", "There"},
-		"../banners/standard.txt",
 	)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -84,9 +87,10 @@ func TestSpecificCharacter(t *testing.T) {
 
 	err := internal.PrintAscii(
 		&buf,
-		"", "",
+		internal.Config{ // NEW: old empty color/part arguments are no longer needed.
+			BannerPath: "../banners/standard.txt",
+		},
 		[]string{"A"},
-		"../banners/standard.txt",
 	)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
