@@ -70,7 +70,9 @@ func PrintAscii(
 				segment := bannerLines[index]
 
 				if config.Color != "" && inColorRange(pos, starts, partLen) {
-					sb.WriteString(config.Color + segment + "\033[0m") // NEW: color now comes from config
+					sb.WriteString(config.Color) // NEW: color now comes from config
+				sb.WriteString(segment)
+				sb.WriteString("\033[0m")
 				} else {
 					sb.WriteString(segment)
 				}
