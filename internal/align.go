@@ -180,7 +180,9 @@ func renderWordRows(
 			absolutePos := startPosition + pos
 
 			if config.Color != "" && inColorRange(absolutePos, colorStarts, partLen) {
-				sb.WriteString(config.Color + segment + "\033[0m")
+				sb.WriteString(config.Color)
+				sb.WriteString(segment)
+				sb.WriteString("\033[0m")
 			} else {
 				sb.WriteString(segment)
 			}
