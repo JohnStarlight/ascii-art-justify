@@ -17,7 +17,7 @@ func alignRows(rows []string, align string, terminalWidth int) []string {
 	aligned := make([]string, 0, len(rows))
 
 	for _, row := range rows {
-		padding := terminalWidth - len(row)
+		padding := terminalWidth - visibleLen(row)
 
 		if padding <= 0 {
 			aligned = append(aligned, row)

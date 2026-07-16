@@ -172,3 +172,67 @@ func TestAuditExamplesNonEdgeCases(t *testing.T) {
 		})
 	}
 }
+
+func TestShadowBanner(t *testing.T) {
+	tests := []struct {
+		input       string
+		mustContain string
+	}{
+		{"Hello", "_|_|_|_|"},
+		{"World", "_|_|_|"},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.input, func(t *testing.T) {
+			var buf bytes.Buffer
+			err := internal.PrintAscii(
+				&buf,
+				internal.Config{BannerPath: "../banners/shadow.txt"},
+				[]string{tc.input},
+			)
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+
+			lines := strings.Split(strings.TrimRight(buf.String(), "\n"), "\n")
+			if len(lines) != 8 {
+				t.Errorf("expected 8 rendered rows, got %d", len(lines))
+			}
+			if !strings.Contains(buf.String(), tc.mustContain) {
+				t.Errorf("expected shadow banner output to contain %q", tc.mustContain)
+			}
+		})
+	}
+}
+
+func TestThinkertoyBanner(t *testing.T) {
+	tests := []struct {
+		input       string
+		mustContain string
+	}{
+		{"Hello", "o  o"},
+		{"World", "o   o"},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.input, func(t *testing.T) {
+			var buf bytes.Buffer
+			err := internal.PrintAscii(
+				&buf,
+				internal.Config{BannerPath: "../banners/thinkertoy.txt"},
+				[]string{tc.input},
+			)
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+
+			lines := strings.Split(strings.TrimRight(buf.String(), "\n"), "\n")
+			if len(lines) != 8 {
+				t.Errorf("expected 8 rendered rows, got %d", len(lines))
+			}
+			if !strings.Contains(buf.String(), tc.mustContain) {
+				t.Errorf("expected thinkertoy banner output to contain %q", tc.mustContain)
+			}
+		})
+	}
+}
