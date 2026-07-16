@@ -8,9 +8,14 @@ import (
 )
 
 const (
-	asciiStart       = 32
-	charHeight       = 8
-	linesPerChar     = 9
+	asciiStart = 32 // ASCII value of ' ', the first printable character.
+
+	charHeight = 8
+
+	// 8 visual rows + 1 blank separator line per character in the banner file.
+	linesPerChar = 9
+
+	// 95 printable ASCII characters (32–126) × 9 lines each.
 	expectedNewlines = 855
 )
 
@@ -45,12 +50,9 @@ func PrintAscii(
 			continue
 		}
 
-		starts := findAll(line, config.Part) // NEW: color substring now comes from config
-		partLen := len(config.Part)
-
-		if config.Color != "" && config.Part == "" {
-			partLen = len(line)
-		}
+		// NEW: colorAt maps every byte position of the line to the color
+		// that applies there, so multiple --color flags can coexist.
+		colorAt := colorIndexes(line, config)
 
 		rows := make([]string, 0, charHeight) // NEW: stores the 8 rendered ASCII rows before printing, so we can align them.
 
@@ -69,10 +71,10 @@ func PrintAscii(
 
 				segment := bannerLines[index]
 
-				if config.Color != "" && inColorRange(pos, starts, partLen) {
-					sb.WriteString(config.Color) // NEW: color now comes from config
-				sb.WriteString(segment)
-				sb.WriteString("\033[0m")
+				if idx := colorAt[pos]; idx >= 0 {
+					sb.WriteString(config.Colors[idx])
+					sb.WriteString(segment)
+					sb.WriteString("\033[0m")
 				} else {
 					sb.WriteString(segment)
 				}
@@ -97,9 +99,46 @@ func PrintAscii(
 	return nil
 }
 
+// NEW: colorIndexes returns, for each byte position of line, the index into
+// config.Colors that applies there, or -1 when the position is uncolored.
+// The first --color flag whose substring covers a position wins, so overlaps
+// between substrings resolve in flag order.
+func colorIndexes(line string, config Config) []int {
+	indexes := make([]int, len(line))
+	for i := range indexes {
+		indexes[i] = -1
+	}
+
+	for colorIdx, part := range config.Parts {
+		if colorIdx >= len(config.Colors) {
+			break
+		}
+
+		// An omitted substring colors the whole line.
+		if part == "" {
+			for i := range indexes {
+				if indexes[i] == -1 {
+					indexes[i] = colorIdx
+				}
+			}
+			continue
+		}
+
+		for _, start := range findAll(line, part) {
+			for i := start; i < start+len(part) && i < len(indexes); i++ {
+				if indexes[i] == -1 {
+					indexes[i] = colorIdx
+				}
+			}
+		}
+	}
+
+	return indexes
+}
+
 func findAll(line, part string) []int {
 	if part == "" {
-		return []int{0}
+		return nil
 	}
 
 	var starts []int
@@ -116,14 +155,4 @@ func findAll(line, part string) []int {
 	}
 
 	return starts
-}
-
-func inColorRange(pos int, starts []int, partLen int) bool {
-	for _, start := range starts {
-		if pos >= start && pos < start+partLen {
-			return true
-		}
-	}
-
-	return false
 }

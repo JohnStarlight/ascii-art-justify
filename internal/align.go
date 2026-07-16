@@ -50,16 +50,13 @@ func justifyRows(
 ) []string {
 	words := splitWordsWithPositions(line)
 
+	// NEW: colorAt is computed once from the full line so each word keeps
+	// the exact coloring it had at its original position.
+	colorAt := colorIndexes(line, config)
+
 	// A single word cannot be justified.
 	if len(words) < 2 {
-		return renderWordRows(line, 0, bannerLines, config, line)
-	}
-
-	colorStarts := findAll(line, config.Part)
-	partLen := len(config.Part)
-
-	if config.Color != "" && config.Part == "" {
-		partLen = len(line)
+		return renderWordRows(line, 0, bannerLines, config, colorAt)
 	}
 
 	wordRows := make([][]string, 0, len(words))
@@ -72,7 +69,7 @@ func justifyRows(
 			word.start,
 			bannerLines,
 			config,
-			line,
+			colorAt,
 		)
 
 		plainWordRows := renderPlainWordRows(word.text, bannerLines)
@@ -88,7 +85,7 @@ func justifyRows(
 	spacesToDistribute := terminalWidth - totalWordWidth
 
 	if spacesToDistribute <= 0 {
-		return renderWordRows(line, 0, bannerLines, config, line)
+		return renderWordRows(line, 0, bannerLines, config, colorAt)
 	}
 
 	spacePerGap := spacesToDistribute / gaps
@@ -115,9 +112,6 @@ func justifyRows(
 
 		justified = append(justified, sb.String())
 	}
-
-	_ = colorStarts
-	_ = partLen
 
 	return justified
 }
@@ -153,22 +147,17 @@ func splitWordsWithPositions(line string) []wordBlock {
 }
 
 // NEW: renderWordRows renders text into its 8 ASCII-art rows.
-// It is color-aware, so justify can work together with --color.
+// It is color-aware, so justify can work together with --color:
+// colorAt was computed from the full line, and startPosition translates
+// each character back to its absolute position inside that line.
 func renderWordRows(
 	text string,
 	startPosition int,
 	bannerLines []string,
 	config Config,
-	fullLine string,
+	colorAt []int,
 ) []string {
 	rows := make([]string, 0, charHeight)
-
-	colorStarts := findAll(fullLine, config.Part)
-	partLen := len(config.Part)
-
-	if config.Color != "" && config.Part == "" {
-		partLen = len(fullLine)
-	}
 
 	for row := 1; row <= charHeight; row++ {
 		var sb strings.Builder
@@ -179,8 +168,8 @@ func renderWordRows(
 
 			absolutePos := startPosition + pos
 
-			if config.Color != "" && inColorRange(absolutePos, colorStarts, partLen) {
-				sb.WriteString(config.Color)
+			if idx := colorAt[absolutePos]; idx >= 0 {
+				sb.WriteString(config.Colors[idx])
 				sb.WriteString(segment)
 				sb.WriteString("\033[0m")
 			} else {

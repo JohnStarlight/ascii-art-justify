@@ -20,6 +20,7 @@ func TestPaletteNamedColors(t *testing.T) {
 		{"magenta", "\033[38;2;255;0;255m"},
 		{"purple", "\033[38;2;255;0;255m"},
 		{"cyan", "\033[38;2;0;255;255m"},
+		{"orange", "\033[38;2;255;165;0m"}, // NEW: orange named color
 	}
 
 	for _, tc := range tests {
@@ -44,6 +45,28 @@ func TestPaletteRGB(t *testing.T) {
 	want := "\033[38;2;10;20;30m"
 	if got != want {
 		t.Errorf("Palette(rgb(10,20,30)) = %q, want %q", got, want)
+	}
+}
+
+// NEW: hex colors in #RRGGBB form.
+func TestPaletteHex(t *testing.T) {
+	got, err := internal.Palette("#ff8800")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	want := "\033[38;2;255;136;0m"
+	if got != want {
+		t.Errorf("Palette(#ff8800) = %q, want %q", got, want)
+	}
+}
+
+// NEW: malformed hex values must be rejected.
+func TestPaletteInvalidHex(t *testing.T) {
+	for _, input := range []string{"#zz0000", "#fff", "#ff88001"} {
+		if _, err := internal.Palette(input); err == nil {
+			t.Errorf("expected error for %q, got nil", input)
+		}
 	}
 }
 
@@ -90,8 +113,9 @@ func TestPrintAsciiWholeStringColored(t *testing.T) {
 
 	err = internal.PrintAscii(
 		&buf,
-		internal.Config{ // NEW: Color is now passed through Config.
-			Color:      color,
+		internal.Config{ // NEW: an empty Part next to a Color means the whole line is colored.
+			Colors:     []string{color},
+			Parts:      []string{""},
 			BannerPath: "../banners/standard.txt",
 		},
 		[]string{"Hi"},
@@ -121,9 +145,9 @@ func TestPrintAsciiPartialColor(t *testing.T) {
 	// "Hi" with only "H" colored.
 	err = internal.PrintAscii(
 		&buf,
-		internal.Config{ // NEW: Color and Part are now grouped inside Config.
-			Color:      color,
-			Part:       "H",
+		internal.Config{ // NEW: Colors and Parts are parallel slices, one entry per --color flag.
+			Colors:     []string{color},
+			Parts:      []string{"H"},
 			BannerPath: "../banners/standard.txt",
 		},
 		[]string{"Hi"},
@@ -162,6 +186,46 @@ func TestPrintAsciiPartialColor(t *testing.T) {
 	}
 }
 
+// NEW: two --color flags render each substring in its own color.
+func TestPrintAsciiTwoColors(t *testing.T) {
+	var buf bytes.Buffer
+
+	red, err := internal.Palette("red")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	blue, err := internal.Palette("blue")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	// "Hello": "H" red, "lo" blue.
+	err = internal.PrintAscii(
+		&buf,
+		internal.Config{
+			Colors:     []string{red, blue},
+			Parts:      []string{"H", "lo"},
+			BannerPath: "../banners/standard.txt",
+		},
+		[]string{"Hello"},
+	)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	output := buf.String()
+	lines := strings.Split(strings.TrimRight(output, "\n"), "\n")
+
+	for i, line := range lines {
+		if !strings.Contains(line, red) {
+			t.Errorf("line %d: expected line to contain red color code, got %q", i, line)
+		}
+		if !strings.Contains(line, blue) {
+			t.Errorf("line %d: expected line to contain blue color code, got %q", i, line)
+		}
+	}
+}
+
 func TestParseArgsColorWholeString(t *testing.T) {
 	cfg, err := internal.ParseArgs([]string{"prog", "--color=red", "Hello"})
 	if err != nil {
@@ -169,11 +233,11 @@ func TestParseArgsColorWholeString(t *testing.T) {
 	}
 
 	want, _ := internal.Palette("red")
-	if cfg.Color != want {
-		t.Errorf("Color = %q, want %q", cfg.Color, want)
+	if len(cfg.Colors) != 1 || cfg.Colors[0] != want {
+		t.Errorf("Colors = %v, want [%q]", cfg.Colors, want)
 	}
-	if cfg.Part != "" {
-		t.Errorf("Part = %q, want empty", cfg.Part)
+	if len(cfg.Parts) != 1 || cfg.Parts[0] != "" {
+		t.Errorf("Parts = %v, want [\"\"]", cfg.Parts)
 	}
 	if cfg.Text != "Hello" {
 		t.Errorf("Text = %q, want %q", cfg.Text, "Hello")
@@ -186,8 +250,8 @@ func TestParseArgsColorWithSubstring(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	if cfg.Part != "ell" {
-		t.Errorf("Part = %q, want %q", cfg.Part, "ell")
+	if len(cfg.Parts) != 1 || cfg.Parts[0] != "ell" {
+		t.Errorf("Parts = %v, want [%q]", cfg.Parts, "ell")
 	}
 	if cfg.Text != "Hello" {
 		t.Errorf("Text = %q, want %q", cfg.Text, "Hello")
@@ -203,11 +267,54 @@ func TestParseArgsColorWithBanner(t *testing.T) {
 	if cfg.BannerPath != "banners/shadow.txt" {
 		t.Errorf("BannerPath = %q, want %q", cfg.BannerPath, "banners/shadow.txt")
 	}
-	if cfg.Part != "" {
-		t.Errorf("Part = %q, want empty", cfg.Part)
+	if len(cfg.Parts) != 1 || cfg.Parts[0] != "" {
+		t.Errorf("Parts = %v, want [\"\"]", cfg.Parts)
 	}
 	if cfg.Text != "Hello" {
 		t.Errorf("Text = %q, want %q", cfg.Text, "Hello")
+	}
+}
+
+// NEW: multiple --color flags map each color to its own substring, in order.
+func TestParseArgsTwoColors(t *testing.T) {
+	cfg, err := internal.ParseArgs([]string{"prog", "--color=red", "--color=blue", "ell", "lo", "Hello"})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	wantRed, _ := internal.Palette("red")
+	wantBlue, _ := internal.Palette("blue")
+	if len(cfg.Colors) != 2 || cfg.Colors[0] != wantRed || cfg.Colors[1] != wantBlue {
+		t.Errorf("Colors = %v, want [%q %q]", cfg.Colors, wantRed, wantBlue)
+	}
+	if len(cfg.Parts) != 2 || cfg.Parts[0] != "ell" || cfg.Parts[1] != "lo" {
+		t.Errorf("Parts = %v, want [ell lo]", cfg.Parts)
+	}
+	if cfg.Text != "Hello" {
+		t.Errorf("Text = %q, want %q", cfg.Text, "Hello")
+	}
+}
+
+// NEW: the banner may follow the string when multiple --color flags are used.
+func TestParseArgsTwoColorsWithBanner(t *testing.T) {
+	cfg, err := internal.ParseArgs([]string{"prog", "--color=red", "--color=blue", "ell", "lo", "Hello", "shadow"})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if cfg.BannerPath != "banners/shadow.txt" {
+		t.Errorf("BannerPath = %q, want %q", cfg.BannerPath, "banners/shadow.txt")
+	}
+	if cfg.Text != "Hello" {
+		t.Errorf("Text = %q, want %q", cfg.Text, "Hello")
+	}
+}
+
+// NEW: with multiple --color flags every color needs its own substring.
+func TestParseArgsTwoColorsMissingSubstring(t *testing.T) {
+	_, err := internal.ParseArgs([]string{"prog", "--color=red", "--color=blue", "Hello"})
+	if err == nil {
+		t.Fatal("expected error when a substring is missing for one of two --color flags, got nil")
 	}
 }
 
