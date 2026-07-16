@@ -170,8 +170,8 @@ Forces tests to run again even if previous results were cached.
 
 ## Project Structure
 
-- `cmd/main.go` - CLI entrypoint and argument handling
-- `internal/config.go` - argument parsing and validation
+- `cmd/main.go` - CLI entrypoint; orchestrates parsing, output setup, and rendering
+- `internal/config.go` - CLI argument parsing and validation (`ParseArgs`)
 - `internal/printascii.go` - ASCII rendering logic
 - `internal/align.go` - alignment and justify logic
 - `internal/terminal.go` - terminal width detection
@@ -187,7 +187,6 @@ Forces tests to run again even if previous results were cached.
 
 - Supports printable ASCII characters only (`32` to `126`)
 - Unicode characters (for example Greek letters or emoji) are rejected
-- When using `--output`, the banner argument is required (no default when the flag is present)
 - Colored substrings must match literally (no regex/wildcards)
 - ANSI color codes are written even when output goes to a file via `--output` (no automatic stripping)
 - Alignment uses the width of the terminal at run time, even when writing to a file with `--output`

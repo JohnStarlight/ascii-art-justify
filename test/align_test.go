@@ -206,3 +206,83 @@ func TestJustifyKeepsColors(t *testing.T) {
 		}
 	}
 }
+
+func TestJustifyThreeWords(t *testing.T) {
+	width := internal.TerminalWidth()
+
+	if width < 60 {
+		t.Skipf("terminal too narrow (%d cols) to exercise justify with three words", width)
+	}
+
+	justified := renderAligned(t, internal.Config{Align: "justify"}, "Hi Yo Za")
+
+	if len(justified) != 8 {
+		t.Fatalf("expected 8 rendered rows, got %d", len(justified))
+	}
+
+	for i, line := range justified {
+		if got := testVisibleLen(line); got != width {
+			t.Errorf("line %d: expected visible width %d, got %d", i, width, got)
+		}
+	}
+}
+
+func TestMultiLineRightAlign(t *testing.T) {
+	width := internal.TerminalWidth()
+
+	if width < 20 {
+		t.Skipf("terminal too narrow (%d cols)", width)
+	}
+
+	var buf bytes.Buffer
+	err := internal.PrintAscii(
+		&buf,
+		internal.Config{Align: "right", BannerPath: "../banners/standard.txt"},
+		[]string{"Hi", "", "Yo"},
+	)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	lines := strings.Split(strings.TrimRight(buf.String(), "\n"), "\n")
+	if len(lines) != 17 {
+		t.Fatalf("expected 17 lines (8 + blank + 8), got %d", len(lines))
+	}
+
+	for i, line := range lines {
+		if i == 8 {
+			continue
+		}
+		if !strings.HasPrefix(line, " ") {
+			t.Errorf("line %d: expected right-aligned line to start with spaces, got %q", i, line)
+		}
+	}
+}
+
+func TestAlignRightWithColor(t *testing.T) {
+	width := internal.TerminalWidth()
+
+	if width < 20 {
+		t.Skipf("terminal too narrow (%d cols)", width)
+	}
+
+	red, err := internal.Palette("red")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	right := renderAligned(t, internal.Config{
+		Align:  "right",
+		Colors: []string{red},
+		Parts:  []string{""},
+	}, "Hi")
+
+	for i, line := range right {
+		if !strings.Contains(line, red) {
+			t.Errorf("line %d: expected ANSI color codes to be present", i)
+		}
+		if got := testVisibleLen(line); got != width {
+			t.Errorf("line %d: expected visible width %d, got %d", i, width, got)
+		}
+	}
+}
