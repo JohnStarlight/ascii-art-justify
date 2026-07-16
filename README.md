@@ -11,7 +11,8 @@ A simple Go command-line tool that turns text into ASCII art.
   - `shadow`
   - `thinkertoy`
 - Optionally writes the output to a file using `--output=<filename>`
-- Optionally colors the output (whole text or a specific substring) using `--color=<color>`
+- Optionally colors the output using one or more `--color=<color>` flags (whole text, one substring, or several substrings each in its own color)
+- Optionally aligns the output inside the terminal using `--align=<type>` (`left`, `center`, `right`, `justify`)
 
 ## Quick Start
 
@@ -35,6 +36,14 @@ go run ./cmd --color=red "Hello"
 
 ```bash
 go run ./cmd --color=red "ell" "Hello"
+```
+
+```bash
+go run ./cmd --align=center "Hello" standard
+```
+
+```bash
+go run ./cmd --align=justify "Hello There" standard
 ```
 
 Important:
@@ -76,13 +85,49 @@ go run ./cmd "--color=rgb(0,200,255)" "Hello" shadow
 
 Colors `Hello` using a custom RGB color, rendered in the `shadow` banner.
 
-Supported color names: `red`, `green`, `blue`, `yellow`, `magenta`/`purple`, `cyan`.
-Custom colors: `rgb(R,G,B)`, e.g. `rgb(255,128,0)`.
+```bash
+go run ./cmd "--color=#ff8800" "Hello"
+```
 
-Important: when using `rgb(...)`, wrap the whole flag in quotes (`"--color=rgb(R,G,B)"`).
-The parentheses are special characters in the shell and will break the command otherwise.
+Colors `Hello` using a custom hex color (`#RRGGBB`).
 
-`--color` and `--output` can be combined and used in any order.
+Supported color names: `red`, `green`, `blue`, `yellow`, `magenta`/`purple`, `cyan`, `orange`.
+Custom colors: `rgb(R,G,B)` (e.g. `rgb(255,128,0)`) or hex `#RRGGBB` (e.g. `#ff8800`).
+
+Important: when using `rgb(...)` or `#RRGGBB`, wrap the whole flag in quotes (`"--color=rgb(R,G,B)"`, `"--color=#ff8800"`).
+Parentheses and `#` are special characters in the shell and will break the command otherwise.
+
+### Multiple Colors
+
+You can pass `--color` more than once. Each flag pairs with its own substring, in the same order:
+
+```bash
+go run ./cmd --color=red --color=blue "He" "llo" "Hello"
+```
+
+Colors `He` in red and `llo` in blue. With two or more `--color` flags, every color requires its own substring. If two substrings overlap, the first `--color` flag wins.
+
+`--color`, `--output` and `--align` can be combined and used in any order.
+
+## Alignment Support
+
+Use `--align=<type>` to position the rendered output inside the terminal:
+
+```bash
+go run ./cmd --align=right "Hello" standard
+go run ./cmd --align=center "Hello" standard
+go run ./cmd --align=justify "Hello There friend" standard
+```
+
+- `left` — default behavior, output starts at the left edge
+- `center` — output is centered in the terminal
+- `right` — output is pushed to the right edge
+- `justify` — spaces between words are stretched so the text spans the full terminal width
+
+The flag must be written exactly as `--align=<type>` (`--align center` is rejected).
+The terminal width is detected via `stty size`, then `tput cols`, then the `COLUMNS` environment variable, with a final fallback of 80 columns.
+
+`justify` needs at least two words; a single word (or a line wider than the terminal) is printed unchanged. Alignment works together with `--color` — colored substrings stay correctly colored when words are spread apart.
 
 ## Input Rules
 
@@ -128,19 +173,25 @@ Forces tests to run again even if previous results were cached.
 - `cmd/main.go` - CLI entrypoint and argument handling
 - `internal/config.go` - argument parsing and validation
 - `internal/printascii.go` - ASCII rendering logic
-- `internal/color.go` - color name/RGB parsing for `--color`
+- `internal/align.go` - alignment and justify logic
+- `internal/terminal.go` - terminal width detection
+- `internal/color.go` - color name/RGB/hex parsing for `--color`
 - `internal/output.go` - output file creation
 - `banners/*.txt` - banner templates
 - `test/printascii_test.go` - core unit tests
 - `test/audit_examples_test.go` - audit/instruction sample tests
 - `test/color_test.go` - color flag and rendering tests
+- `test/align_test.go` - alignment and justify tests
 
 ## Known Limitations
 
 - Supports printable ASCII characters only (`32` to `126`)
 - Unicode characters (for example Greek letters or emoji) are rejected
 - When using `--output`, the banner argument is required (no default when the flag is present)
-- Only one color per invocation; the colored substring must match literally (no regex/wildcards)
+- Colored substrings must match literally (no regex/wildcards)
+- ANSI color codes are written even when output goes to a file via `--output` (no automatic stripping)
+- Alignment uses the width of the terminal at run time, even when writing to a file with `--output`
+- If the terminal is narrower than the rendered text, alignment leaves the output unchanged
 
 ## License
 

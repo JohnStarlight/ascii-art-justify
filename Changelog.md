@@ -1,3 +1,29 @@
+# Changelog
+
+## 2026-07-16 — align/justify + color v2 merge
+
+### Added
+- `--align=<type>` flag with `left`, `right`, `center`, `justify` (internal/align.go, internal/config.go).
+- Justify: σπάει τη γραμμή σε λέξεις, μετράει το ASCII-art πλάτος κάθε λέξης και μοιράζει τα κενά στα gaps ώστε κάθε row να πιάνει ακριβώς το πλάτος του τερματικού.
+- Ανίχνευση πλάτους τερματικού: `stty size` → `tput cols` → `COLUMNS` → fallback 80 (internal/terminal.go).
+- Πολλαπλά `--color` flags: κάθε χρώμα ζευγαρώνει με το δικό του substring, με τη σειρά· σε overlap κερδίζει το πρώτο flag (Config.Colors/Parts []string).
+- Hex χρώματα `#RRGGBB` και named color `orange` (internal/color.go).
+- test/align_test.go: parsing/validation του `--align`, right/center padding, justify πλάτος, justify+color, single word.
+- test/color_test.go: multi-color parsing/rendering, hex, orange, άκυρα hex.
+
+### Changed
+- `Config.Color`/`Config.Part` (singular) → `Config.Colors`/`Config.Parts` (parallel slices).
+- `PrintAscii(writer, color, part, lines, filename)` → `PrintAscii(writer, config, lines)`.
+- Το rendering χρησιμοποιεί κοινό `colorIndexes` (χρώμα ανά θέση της γραμμής) και για το κανονικό output και για το justify, ώστε ο χρωματισμός substring να επιβιώνει όταν οι λέξεις απλώνονται.
+- README.md / PRD.md: ενημέρωση για align, multi-color, hex, orange, νέα δομή project και νέα known limitations.
+
+### Removed
+- Νεκρός κώδικας στο justifyRows (`_ = colorStarts`, `_ = partLen`) και το αχρησιμοποίητο πλέον `inColorRange`.
+
+---
+
+## Παλαιότερο refactoring log (color/output)
+
 TODO:
 ✅ args.go:39  → if len(args) < 2 || len(args) > 4
 ✅ args.go:50  → banner := "standard"
