@@ -4,15 +4,27 @@ A simple Go command-line tool that turns text into ASCII art.
 
 ## What This Project Does
 
-- Takes one text argument from the terminal
+- Takes the text to render from the terminal (plus optional substrings when coloring)
 - Converts each character to ASCII art (8 lines tall)
-- Lets you choose one of 3 styles:
+- Lets you choose one of 3 styles (the banner name is optional and defaults to `standard`):
   - `standard`
   - `shadow`
   - `thinkertoy`
 - Optionally writes the output to a file using `--output=<filename>`
 - Optionally colors the output using one or more `--color=<color>` flags (whole text, one substring, or several substrings each in its own color)
 - Optionally aligns the output inside the terminal using `--align=<type>` (`left`, `center`, `right`, `justify`)
+
+## Command Shape
+
+```
+go run ./cmd [--color=<color>]... [--output=<file>] [--align=<type>] [SUBSTRING]... [STRING] [BANNER]
+```
+
+- `[STRING]` is required; `[BANNER]` is optional and defaults to `standard`
+- Flags may appear anywhere in the argument list — before, between, or after the positional arguments
+- Flag names, the `--align` value and the banner name are case-insensitive (`--ALIGN=CENTER "Hi" STANDARD` works)
+- Positional order matters: substrings come first, then the string, then the banner
+- Errors are printed to `stderr` as `Error: ...` and the program exits with status `1`
 
 ## Quick Start
 
@@ -107,7 +119,7 @@ go run ./cmd --color=red --color=blue "He" "llo" "Hello"
 
 Colors `He` in red and `llo` in blue. With two or more `--color` flags, every color requires its own substring. If two substrings overlap, the first `--color` flag wins.
 
-`--color`, `--output` and `--align` can be combined and used in any order.
+`--color`, `--output` and `--align` can be combined and used in any order — see [Combining Flags](#combining-flags) for an example of every combination.
 
 ## Alignment Support
 
@@ -129,9 +141,142 @@ The terminal width is detected via `stty size`, then `tput cols`, then the `COLU
 
 `justify` needs at least two words; a single word (or a line wider than the terminal) is printed unchanged. Alignment works together with `--color` — colored substrings stay correctly colored when words are spread apart.
 
+## Combining Flags
+
+`--color`, `--output` and `--align` are independent and can be mixed freely, with or without a banner. The table below lists every possible combination, followed by a runnable example of each.
+
+| # | `--color` | `--output` | `--align` | Banner |
+|---|---|---|---|---|
+| 1 | – | – | – | – |
+| 2 | – | – | – | yes |
+| 3 | – | yes | – | – |
+| 4 | – | yes | – | yes |
+| 5 | – | – | yes | – |
+| 6 | – | – | yes | yes |
+| 7 | – | yes | yes | – |
+| 8 | – | yes | yes | yes |
+| 9 | one (whole text) | – | – | – |
+| 10 | one (substring) | – | – | – |
+| 11 | one (substring) | – | – | yes |
+| 12 | one | yes | – | – |
+| 13 | one | yes | – | yes |
+| 14 | one | – | yes | – |
+| 15 | one | – | yes | yes |
+| 16 | one | yes | yes | – |
+| 17 | one | yes | yes | yes |
+| 18 | many | – | – | – |
+| 19 | many | – | – | yes |
+| 20 | many | yes | – | – |
+| 21 | many | yes | – | yes |
+| 22 | many | – | yes | – |
+| 23 | many | – | yes | yes |
+| 24 | many | yes | yes | – |
+| 25 | many | yes | yes | yes |
+
+### No color
+
+```bash
+# 1 — plain text, default standard banner
+go run ./cmd "Hello There"
+
+# 2 — plain text with an explicit banner
+go run ./cmd "Hello There" shadow
+
+# 3 — write to a file
+go run ./cmd --output=result.txt "Hello There"
+
+# 4 — write to a file with a banner
+go run ./cmd --output=result.txt "Hello There" thinkertoy
+
+# 5 — align only
+go run ./cmd --align=center "Hello There"
+
+# 6 — align with a banner
+go run ./cmd --align=right "Hello There" shadow
+
+# 7 — align and write to a file
+go run ./cmd --output=result.txt --align=justify "Hello There"
+
+# 8 — align, file and banner
+go run ./cmd --output=result.txt --align=center "Hello There" thinkertoy
+```
+
+### One `--color`
+
+With a single `--color`, the substring is optional: omit it and the whole string is colored.
+
+```bash
+# 9 — color the whole string
+go run ./cmd --color=red "Hello There"
+
+# 10 — color one substring only
+go run ./cmd --color=red "ell" "Hello There"
+
+# 11 — color one substring, with a banner
+go run ./cmd --color=green "There" "Hello There" shadow
+
+# 12 — color plus output file
+go run ./cmd --color=blue --output=result.txt "Hello There"
+
+# 13 — color, substring, output file and banner
+go run ./cmd --color=blue --output=result.txt "Hello" "Hello There" thinkertoy
+
+# 14 — color plus alignment
+go run ./cmd --color=cyan --align=center "Hello There"
+
+# 15 — color, alignment and banner
+go run ./cmd --color=cyan --align=right "Hello There" shadow
+
+# 16 — color, substring, justify and output file
+go run ./cmd --color=yellow --align=justify --output=result.txt "There" "Hello There"
+
+# 17 — everything with a single color
+go run ./cmd "--color=#ff8800" --align=justify --output=result.txt "Hello" "Hello There" standard
+```
+
+### Multiple `--color`
+
+With two or more `--color` flags, **every** color needs its own substring, in the same order as the flags.
+
+```bash
+# 18 — two colors, two substrings
+go run ./cmd --color=red --color=blue "He" "llo" "Hello There"
+
+# 19 — two colors with a banner
+go run ./cmd --color=red --color=blue "Hello" "There" "Hello There" shadow
+
+# 20 — two colors written to a file
+go run ./cmd --color=red --color=green --output=result.txt "Hello" "There" "Hello There"
+
+# 21 — two colors, file and banner
+go run ./cmd --color=red --color=green --output=result.txt "Hello" "There" "Hello There" thinkertoy
+
+# 22 — two colors plus alignment
+go run ./cmd --color=magenta --color=cyan --align=center "Hello" "There" "Hello There"
+
+# 23 — two colors, justify and banner
+go run ./cmd --color=magenta --color=cyan --align=justify "Hello" "There" "Hello There" shadow
+
+# 24 — two colors, justify and output file
+go run ./cmd --color=orange --color=blue --align=justify --output=result.txt "Hello" "There" "Hello There"
+
+# 25 — everything at once, including custom rgb/hex colors
+go run ./cmd "--color=rgb(255,128,0)" "--color=#00c8ff" --align=justify --output=result.txt "Hello" "There" "Hello There" shadow
+```
+
+### Multi-line combinations
+
+`\n` works with every flag; each line is aligned independently.
+
+```bash
+go run ./cmd --align=center "Hello\nThere"
+go run ./cmd --color=red --align=justify "Hello There\nGeneral Kenobi"
+go run ./cmd --color=red --color=blue --align=right --output=result.txt "Hello" "There" "Hello There\nAgain" shadow
+```
+
 ## Input Rules
 
-- You must pass exactly one argument
+- You must pass exactly one string to render (plus one substring per `--color` flag when using two or more colors)
 - Only printable ASCII characters are accepted (`32` to `126`)
 - Non-ASCII characters (for example `é` or emoji) are rejected
 - The sequence `\n` (backslash + n) is used to create new lines in the output
@@ -185,6 +330,7 @@ Forces tests to run again even if previous results were cached.
 
 ## Known Limitations
 
+- The banner files are loaded from the relative path `banners/`, so the program must be run from the project root
 - Supports printable ASCII characters only (`32` to `126`)
 - Unicode characters (for example Greek letters or emoji) are rejected
 - Colored substrings must match literally (no regex/wildcards)
